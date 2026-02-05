@@ -18,6 +18,7 @@
             --danger: #ff4444;
             --success: #00c851;
             --ongoing: #33b5e5;
+            --announcement: #9c27b0;
         }
 
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); margin: 0; }
@@ -47,8 +48,11 @@
         .priority-tag { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; float: right; font-weight: bold; }
         .tag-urgent { background: var(--danger); color: white; }
         
+        /* New Sectioning for Pitches */
+        .story-details { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #444; }
+        
         /* Production Tasks Styling */
-        .prod-tasks { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; }
+        .prod-tasks { margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
         .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-top: 8px; }
         .task-btn { 
             font-size: 0.65rem; padding: 5px; border-radius: 4px; border: 1px solid #444; 
@@ -57,6 +61,10 @@
         .task-btn.ongoing { border-color: var(--ongoing); color: var(--ongoing); }
         .task-btn.done { border-color: var(--success); color: var(--success); background: rgba(0, 200, 81, 0.1); }
         .pitch-row.status-done { border-left-color: var(--success) !important; box-shadow: inset 0 0 10px rgba(0, 200, 81, 0.1); }
+
+        /* Announcement Styling */
+        .ann-row { background: #2a2a2a; border-left: 3px solid var(--announcement); padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.8rem; }
+        .ann-meta { font-size: 0.6rem; color: var(--announcement); font-weight: bold; display: block; margin-bottom: 3px; }
 
         /* Inputs & Buttons */
         input, textarea, select { 
@@ -109,6 +117,15 @@
 
         <div class="dashboard-wrapper">
             <div class="sidebar">
+                <div class="card" style="border-color: var(--announcement);">
+                    <h3 style="color: var(--announcement); border-color: var(--announcement);">📢 Announcements</h3>
+                    <div id="announcement-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;"></div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="newAnn" placeholder="Public blast..." style="margin:0; font-size: 0.8rem;">
+                        <button onclick="addAnnouncement()" style="width:50px; background: var(--announcement); color: white;">📢</button>
+                    </div>
+                </div>
+
                 <div class="card">
                     <h3>➕ New Story Pitch</h3>
                     <label style="font-size:0.7rem; color:#888;">Priority Level</label>
@@ -191,6 +208,7 @@
 
                 loadGlobalPitches();
                 loadPersonalTasks(user.uid);
+                loadAnnouncements(); // Bagong function
             } else {
                 document.getElementById('auth-section').classList.remove('hidden');
                 document.getElementById('dashboard-section').classList.add('hidden');
@@ -234,15 +252,18 @@
                     return `
                         <div class="pitch-row ${priorityClass} ${storyDoneClass}">
                             <span class="priority-tag ${tagClass}">${p.priority || 'Normal'}</span>
-                            <div style="font-weight:bold; color:var(--accent-color); margin-bottom:10px;">📅 ${p.date || 'TBD'}</div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; font-size:0.8rem; color:#aaa; margin-bottom:10px;">
-                                <span>📍 ${p.location}</span>
-                                <span>🎥 ${p.cameraman}</span>
+                            
+                            <div class="story-details">
+                                <div style="font-weight:bold; color:var(--accent-color); margin-bottom:10px;">📅 ${p.date || 'TBD'}</div>
+                                <div style="display:grid; grid-template-columns:1fr 1fr; font-size:0.8rem; color:#aaa; margin-bottom:10px;">
+                                    <span>📍 ${p.location}</span>
+                                    <span>🎥 ${p.cameraman}</span>
+                                </div>
+                                <div style="color:#eee; background:#2a2a2a; padding:10px; border-radius:5px; font-size:0.9rem;">${p.about}</div>
                             </div>
-                            <div style="color:#eee; background:#2a2a2a; padding:10px; border-radius:5px; font-size:0.9rem;">${p.about}</div>
                             
                             <div class="prod-tasks">
-                                <span style="font-size:0.65rem; color:var(--accent-color); font-weight:bold;">PRODUCTION STATUS:</span>
+                                <span style="font-size:0.65rem; color:var(--accent-color); font-weight:bold;">🚀 STATUS TRACKER:</span>
                                 <div class="task-grid">
                                     <div class="task-btn ${p.tasks?.script || ''}" onclick="updateProdTask('${doc.id}', 'script', '${p.tasks?.script || ''}')">📝 SCRIPT</div>
                                     <div class="task-btn ${p.tasks?.shoot || ''}" onclick="updateProdTask('${doc.id}', 'shoot', '${p.tasks?.shoot || ''}')">🎬 SHOOT</div>
@@ -250,8 +271,8 @@
                                 </div>
                             </div>
 
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="font-size:0.6rem; color:#555; margin-top:8px;">Posted by: ${p.author}</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                                <span style="font-size:0.6rem; color:#555;">By: ${p.author}</span>
                                 ${isOwner ? `<button class="btn-delete" onclick="deletePitch('${doc.id}')">Delete</button>` : ''}
                             </div>
                         </div>
@@ -283,7 +304,7 @@
                 about: about,
                 author: auth.currentUser.email,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                tasks: { script: "", shoot: "", edit: "" } // Initialize empty tasks
+                tasks: { script: "", shoot: "", edit: "" } 
             });
             ['pAbout', 'pLoc', 'pCam', 'pDate'].forEach(id => document.getElementById(id).value = '');
         }
@@ -292,6 +313,33 @@
             if(confirm("Delete this pitch?")) {
                 await db.collection("pitches").doc(id).delete();
             }
+        }
+
+        // --- ANNOUNCEMENT LOGIC ---
+        async function addAnnouncement() {
+            const msg = document.getElementById('newAnn').value;
+            if(!msg) return;
+            await db.collection("announcements").add({
+                text: msg,
+                author: auth.currentUser.email.split('@')[0],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('newAnn').value = '';
+        }
+
+        function loadAnnouncements() {
+            db.collection("announcements").orderBy("createdAt", "desc").limit(10).onSnapshot(snapshot => {
+                const list = document.getElementById('announcement-list');
+                list.innerHTML = snapshot.docs.map(doc => {
+                    const a = doc.data();
+                    return `
+                        <div class="ann-row">
+                            <span class="ann-meta">@${a.author}</span>
+                            ${a.text}
+                        </div>
+                    `;
+                }).join('');
+            });
         }
 
         // --- TASK LOGIC ---
