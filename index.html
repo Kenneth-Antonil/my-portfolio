@@ -164,9 +164,49 @@
         .assignment-box { font-size: 0.7rem; color: #888; margin: 12px 0; display: flex; flex-wrap: wrap; gap: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
         .assignment-box b { color: var(--accent-color); }
         .icon-sm { width: 16px; height: 16px; vertical-align: middle; }
+
+        /* NEW SYSTEMS STYLES */
+        #meeting-banner {
+            background: var(--accent-color);
+            color: #000;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 0.8rem;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+        }
+        .chat-container {
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding-right: 5px;
+            font-size: 0.8rem;
+        }
+        .msg-bubble {
+            background: rgba(255,255,255,0.05);
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            border-left: 3px solid var(--accent-color);
+        }
+        .msg-meta { font-size: 0.6rem; color: var(--text-dim); margin-bottom: 2px; }
     </style>
 </head>
 <body>
+
+    <div id="meeting-banner">
+        <span id="meeting-text"></span>
+        <button id="close-meeting-btn" onclick="clearMeeting()" style="width:auto; padding: 4px 10px; font-size: 0.6rem; background: #000; color: #fff; display:none;">RESOLVE</button>
+    </div>
 
     <div id="auth-section" style="height:100vh; display:flex; align-items:center; justify-content:center; background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);">
         <div style="background: var(--card-bg); padding: 45px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center; border: var(--border-style); box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
@@ -225,6 +265,13 @@
                     </div>
                 </div>
 
+                <div id="host-meeting-panel" class="card hidden">
+                    <h3><i data-lucide="video" class="icon-sm"></i> Schedule Meeting</h3>
+                    <input type="text" id="meetTitle" placeholder="Agenda..." style="font-size:0.8rem;">
+                    <input type="datetime-local" id="meetTime">
+                    <button onclick="setMeeting()" style="background: #fff; font-size: 0.7rem; padding: 10px;">SET GLOBAL BANNER</button>
+                </div>
+
                 <div class="card">
                     <h3><i data-lucide="bell" class="icon-sm"></i> Announcements</h3>
                     <div id="announcement-board" style="font-size: 0.85rem; max-height: 250px; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;"></div>
@@ -281,6 +328,18 @@
                     <p id="role-greeting" style="font-size: 0.75rem; color: var(--text-dim); margin: 8px 0 15px 0;">All systems are nominal.</p>
                     <div style="font-size: 0.65rem; color: var(--success); display: flex; align-items: center; gap: 8px; background: rgba(34,197,94,0.1); padding: 8px; border-radius: 6px;">
                         <i data-lucide="zap" style="width:14px;"></i> Server: Philippines North
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i data-lucide="message-square" class="icon-sm"></i> Private Hub</h3>
+                    <div class="chat-container">
+                        <div id="chat-messages"></div>
+                        <select id="chat-recipient" style="font-size:0.7rem; padding:8px; background:#000;"></select>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="chat-input" placeholder="Message..." style="margin:0; font-size: 0.75rem; padding: 8px;">
+                            <button onclick="sendPrivateMsg()" style="width:40px; padding:0;"><i data-lucide="send" style="width:14px;"></i></button>
+                        </div>
                     </div>
                 </div>
 
@@ -365,16 +424,92 @@
                     let timeGreet = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
                     document.getElementById('greeting-msg').innerText = `${timeGreet}, ${currentUserRole}!`;
                     document.getElementById('role-greeting').innerText = `Ready to lead the crew, ${userData.displayName || 'Chief'}?`;
+                    
+                    if(currentUserRole === 'Host') {
+                        document.getElementById('host-meeting-panel').classList.remove('hidden');
+                        document.getElementById('close-meeting-btn').style.display = 'block';
+                    }
                 }
 
                 loadGlobalPitches();
                 loadPersonalTasks(user.uid);
                 loadAnnouncements();
+                loadMeetingBanner();
+                loadUsersForChat();
+                loadPrivateMessages(user.email);
             } else {
                 document.getElementById('auth-section').classList.remove('hidden');
                 document.getElementById('dashboard-section').classList.add('hidden');
             }
         });
+
+        // MEETING SYSTEM
+        async function setMeeting() {
+            const title = document.getElementById('meetTitle').value;
+            const time = document.getElementById('meetTime').value;
+            if(!title || !time) return alert("Complete the meeting details.");
+            await db.collection("settings").doc("currentMeeting").set({
+                text: `MEETING: ${title} @ ${new Date(time).toLocaleString()}`,
+                active: true
+            });
+            alert("Banner set for all employees!");
+        }
+
+        async function clearMeeting() {
+            await db.collection("settings").doc("currentMeeting").update({ active: false });
+        }
+
+        function loadMeetingBanner() {
+            db.collection("settings").doc("currentMeeting").onSnapshot(doc => {
+                const banner = document.getElementById('meeting-banner');
+                if(doc.exists && doc.data().active) {
+                    banner.style.display = 'flex';
+                    document.getElementById('meeting-text').innerText = doc.data().text;
+                } else {
+                    banner.style.display = 'none';
+                }
+            });
+        }
+
+        // CHAT SYSTEM
+        async function loadUsersForChat() {
+            const snapshot = await db.collection("users").get();
+            const select = document.getElementById('chat-recipient');
+            select.innerHTML = '<option value="">Select Recipient...</option>' + 
+                snapshot.docs
+                .filter(doc => doc.data().email !== auth.currentUser.email)
+                .map(doc => `<option value="${doc.data().email}">${doc.data().displayName} (${doc.data().role})</option>`).join('');
+        }
+
+        async function sendPrivateMsg() {
+            const recipient = document.getElementById('chat-recipient').value;
+            const text = document.getElementById('chat-input').value;
+            if(!recipient || !text) return;
+
+            await db.collection("messages").add({
+                sender: auth.currentUser.email,
+                receiver: recipient,
+                text: text,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('chat-input').value = '';
+        }
+
+        function loadPrivateMessages(myEmail) {
+            db.collection("messages")
+                .where("receiver", "==", myEmail)
+                .orderBy("createdAt", "desc")
+                .limit(20)
+                .onSnapshot(snapshot => {
+                    const box = document.getElementById('chat-messages');
+                    box.innerHTML = snapshot.docs.map(doc => `
+                        <div class="msg-bubble">
+                            <div class="msg-meta">FROM: ${doc.data().sender}</div>
+                            <div>${doc.data().text}</div>
+                        </div>
+                    `).join('');
+                });
+        }
 
         async function updateProfileName() {
             const newName = document.getElementById('updateNameInput').value;
