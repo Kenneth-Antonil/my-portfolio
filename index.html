@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROD-HUB PRO | Production Management</title>
+    <title>PROD-HUB PRO | Social Production</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -11,352 +11,211 @@
     <style>
         :root {
             --accent-color: #ffb400;
+            --fb-blue: #1877f2;
             --bg-dark: #0a0a0a;
-            --card-bg: #141414;
-            --input-bg: #1e1e1e;
-            --text-main: #f5f5f5;
-            --text-dim: #94a3b8;
-            --danger: #ef4444;
-            --success: #22c55e;
-            --ongoing: #3b82f6;
-            --border-style: 1px solid rgba(255, 255, 255, 0.1);
+            --card-bg: #18191a; /* FB Dark Mode Card Color */
+            --input-bg: #3a3b3c;
+            --text-main: #e4e6eb;
+            --text-dim: #b0b3b8;
+            --danger: #f02849;
+            --success: #45bd62;
+            --border-style: 1px solid #3e4042;
         }
 
         * { box-sizing: border-box; transition: all 0.2s ease; }
         body { 
-            font-family: 'Inter', -apple-system, sans-serif; 
-            background: var(--bg-dark); 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background: #18191a; 
             color: var(--text-main); 
             margin: 0; 
             overflow-x: hidden;
         }
         .hidden { display: none !important; }
 
-        /* NAVIGATION */
+        /* FB STYLE NAVBAR */
         nav { 
-            background: rgba(0, 0, 0, 0.8); 
-            backdrop-filter: blur(10px);
-            padding: 0.8rem 1.5rem; 
+            background: #242526; 
+            padding: 0 16px; 
             display: flex; justify-content: space-between; 
             align-items: center; 
-            border-bottom: 2px solid var(--accent-color);
+            border-bottom: var(--border-style);
             position: sticky; top: 0; z-index: 1000;
+            height: 56px;
         }
-        .nav-logo { font-weight: 800; color: var(--accent-color); font-size: 1.2rem; display: flex; align-items: center; gap: 12px; }
-        .nav-logo img { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--accent-color); }
+        .nav-logo { font-weight: 800; color: var(--accent-color); font-size: 1.5rem; display: flex; align-items: center; gap: 8px; }
+        .nav-logo img { width: 40px; height: 40px; border-radius: 50%; }
 
-        /* MAIN LAYOUT */
+        /* LAYOUT */
         .dashboard-wrapper { 
-            max-width: 1400px; 
-            margin: 0 auto; 
-            padding: 20px; 
             display: grid; 
             grid-template-columns: 1fr; 
-            gap: 24px; 
+            max-width: 100%;
         }
 
         @media (min-width: 1100px) {
             .dashboard-wrapper { 
-                grid-template-columns: 300px 1fr 300px; 
-                padding: 30px; 
-                align-items: start;
+                grid-template-columns: 320px 1fr 320px; 
+                gap: 0;
             }
-            .sidebar-left, .sidebar-right { position: sticky; top: 100px; }
         }
         
-        /* CARDS & CONTAINERS */
+        /* FB CARDS */
         .card { 
-            background: var(--card-bg); 
-            padding: 24px; 
-            border-radius: 16px; 
-            border: var(--border-style);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            margin-bottom: 20px;
+            background: #242526; 
+            padding: 16px; 
+            border-radius: 8px; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            margin-bottom: 16px;
+            border: none;
         }
         h3 { 
-            color: var(--accent-color); 
-            font-size: 0.75rem; 
-            text-transform: uppercase; 
+            color: var(--text-dim); 
+            font-size: 0.9rem; 
             margin-top: 0; 
-            border-bottom: 1px solid rgba(255,255,255,0.05); 
-            padding-bottom: 15px; 
-            letter-spacing: 1.5px; 
+            padding-bottom: 10px; 
             display: flex; align-items: center; gap: 10px;
         }
 
-        /* PITCH ROWS */
+        /* NEWS FEED STYLE PITCH */
         .pitch-row { 
-            background: rgba(255,255,255,0.02); 
-            padding: 20px; 
-            border-radius: 14px; 
-            margin-bottom: 20px; 
-            border: 1px solid rgba(255,255,255,0.05);
-            position: relative;
+            background: #242526; 
+            padding: 12px; 
+            border-radius: 8px; 
+            margin-bottom: 12px; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
-        .pitch-row:hover { background: rgba(255,255,255,0.04); }
-        .priority-high { border-left: 4px solid var(--danger); }
-        .priority-tag { font-size: 0.6rem; padding: 4px 10px; border-radius: 20px; float: right; font-weight: 800; }
-        .tag-urgent { background: var(--danger); color: white; }
-        
-        /* PROGRESS BUTTONS */
-        .prod-tasks { margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); }
-        .task-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
-        @media (min-width: 600px) { .task-grid { grid-template-columns: repeat(4, 1fr); } }
-        
-        .task-btn { 
-            font-size: 0.65rem; padding: 12px 8px; border-radius: 10px; 
-            border: 1px solid #333; background: #1a1a1a; color: #666; 
-            cursor: pointer; text-align: center; font-weight: 700;
-            display: flex; flex-direction: column; align-items: center; gap: 6px;
-        }
-        .task-btn.ongoing { border-color: var(--ongoing); color: var(--ongoing); background: rgba(59, 130, 246, 0.1); }
-        .task-btn.done { border-color: var(--success); color: var(--success); background: rgba(34, 197, 94, 0.1); }
-        .task-btn.pending { border-color: var(--accent-color); color: var(--accent-color); animation: pulse 2s infinite; }
-        
-        .pitch-row.status-done { border-left: 4px solid var(--success); background: rgba(34, 197, 94, 0.05); }
+        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: #3e4042; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
 
-        /* INPUTS & BUTTONS */
-        input, textarea, select { 
-            width: 100%; padding: 14px; margin-bottom: 12px; background: var(--input-bg); 
-            border: 1px solid #2a2a2a; color: white; border-radius: 10px; font-size: 0.9rem;
-        }
-        input:focus { border-color: var(--accent-color); outline: none; }
-        
-        button { 
-            background: var(--accent-color); color: #000; border: none; padding: 14px; 
-            border-radius: 10px; font-weight: 700; cursor: pointer; width: 100%;
-        }
-        button:hover { filter: contrast(1.2); transform: translateY(-2px); }
-        .btn-delete { background: transparent; color: var(--danger); border: 1px solid var(--danger); width: auto; padding: 6px 12px; font-size: 0.7rem; border-radius: 6px; }
-        .btn-approve { background: var(--success); color: white; width: auto; padding: 8px 16px; font-size: 0.7rem; border-radius: 6px; }
-
-        /* TABS */
+        /* FB TABS */
         .hub-tabs { 
-            display: flex; gap: 8px; margin-bottom: 25px; 
-            background: #000; padding: 6px; border-radius: 12px; 
+            display: flex; border-bottom: var(--border-style); margin-bottom: 16px; background: #242526;
         }
         .hub-tab { 
-            flex: 1; padding: 12px; font-size: 0.7rem; font-weight: 700; 
-            text-align: center; cursor: pointer; border-radius: 8px; 
-            color: #666; text-transform: uppercase; 
+            flex: 1; padding: 16px; text-align: center; cursor: pointer; color: var(--text-dim); font-weight: 600;
+            border-bottom: 3px solid transparent;
         }
-        .hub-tab.active { background: var(--accent-color); color: #000; }
+        .hub-tab.active { color: var(--fb-blue); border-bottom: 3px solid var(--fb-blue); }
 
-        /* ANNOUNCEMENTS */
-        .announcement-item { 
-            background: rgba(255,255,255,0.03); padding: 12px; 
-            border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem;
-        }
-
-        .stat-badge { background: #000; padding: 15px; border-radius: 12px; text-align: center; flex: 1; border: var(--border-style); }
-        .stat-val { display: block; font-size: 1.5rem; font-weight: 800; color: var(--accent-color); }
-        .stat-label { font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; }
-
-        .media-link-btn {
-            display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
-            padding: 8px 14px; background: #222; border-radius: 8px; color: var(--accent-color);
-            text-decoration: none; font-size: 0.7rem; font-weight: 600; border: 1px solid #333;
-        }
-
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .airing-tag { background: #fff; color: #000; padding: 4px 10px; border-radius: 6px; font-weight: 900; font-size: 0.6rem; display: inline-block; margin-bottom: 10px; }
-
-        .assignment-box { font-size: 0.7rem; color: #888; margin: 12px 0; display: flex; flex-wrap: wrap; gap: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
-        .assignment-box b { color: var(--accent-color); }
-        .icon-sm { width: 16px; height: 16px; vertical-align: middle; }
-
-        /* NEW SYSTEMS STYLES */
-        #meeting-banner {
-            background: var(--accent-color);
-            color: #000;
-            padding: 10px 20px;
-            text-align: center;
-            font-weight: 800;
-            font-size: 0.8rem;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            position: relative;
-        }
-        .chat-container {
-            height: 300px;
-            display: flex;
-            flex-direction: column;
-        }
-        #chat-messages {
-            flex: 1;
+        /* FLOATING CHAT STYLE */
+        .chat-sidebar {
+            padding: 16px;
+            height: calc(100vh - 56px);
             overflow-y: auto;
-            margin-bottom: 10px;
-            padding-right: 5px;
-            font-size: 0.8rem;
+            border-left: var(--border-style);
         }
-        .msg-bubble {
-            background: rgba(255,255,255,0.05);
-            padding: 8px;
-            border-radius: 8px;
-            margin-bottom: 5px;
-            border-left: 3px solid var(--accent-color);
+        .contact-item {
+            display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 8px; cursor: pointer;
         }
-        .msg-meta { font-size: 0.6rem; color: var(--text-dim); margin-bottom: 2px; }
+        .contact-item:hover { background: #3a3b3c; }
+        .online-dot { width: 10px; height: 10px; background: var(--success); border-radius: 50%; border: 2px solid #242526; position: absolute; bottom: 0; right: 0; }
+
+        /* FB MEETING BANNER */
+        #meeting-banner {
+            background: #1877f2;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+            position: relative;
+            animation: slideDown 0.5s ease;
+        }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+        .btn-fb { background: #3a3b3c; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-fb-primary { background: var(--fb-blue); color: white; }
+
+        input, textarea, select { 
+            background: #3a3b3c; border: none; color: white; padding: 12px; border-radius: 8px; margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
 
     <div id="meeting-banner">
         <span id="meeting-text"></span>
-        <button id="close-meeting-btn" onclick="clearMeeting()" style="width:auto; padding: 4px 10px; font-size: 0.6rem; background: #000; color: #fff; display:none;">RESOLVE</button>
+        <button id="close-meeting-btn" onclick="clearMeeting()" style="margin-left:20px; background:rgba(0,0,0,0.2); border:none; color:white; border-radius:4px; padding:4px 8px; cursor:pointer; display:none;">RESOLVE</button>
     </div>
 
-    <div id="auth-section" style="height:100vh; display:flex; align-items:center; justify-content:center; background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);">
-        <div style="background: var(--card-bg); padding: 45px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center; border: var(--border-style); box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
-            <img src="https://i.imgur.com/7d3ROpd.jpeg" style="width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--accent-color); margin-bottom: 25px; object-fit: cover;">
-            <h1 style="color: var(--accent-color); margin: 0; letter-spacing: 4px; font-size: 1.8rem;">PROD-HUB</h1>
-            <p style="font-size: 0.9rem; color: var(--text-dim); margin-bottom: 30px;">Professional Creative Management</p>
-            
-            <div style="text-align: left; margin-bottom: 20px;">
-                <label style="color:var(--accent-color); font-size: 0.65rem; font-weight: 800; letter-spacing: 1px; margin-left: 5px;">ACCOUNT ROLE</label>
-                <select id="user-role" style="margin-top: 5px; background: #000;">
-                    <option value="Producer">Producer</option>
-                    <option value="Associate Producer">Associate Producer</option>
-                    <option value="Host">Program Host</option>
-                    <option value="Editor">Video Editor</option>
-                    <option value="Writer">Script Writer</option>
-                    <option value="Camera">Camera/DP</option>
-                </select>
+    <nav id="main-nav" class="hidden">
+        <div class="nav-logo">
+            <img src="https://i.imgur.com/7d3ROpd.jpeg">
+            <span style="color:white">hub</span>
+        </div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div style="text-align: right;">
+                <div id="user-display" style="font-weight: 600; font-size: 0.9rem;"></div>
+                <div id="role-tag" style="font-size: 0.7rem; color: var(--text-dim);"></div>
             </div>
+            <button onclick="handleLogout()" class="btn-fb">Logout</button>
+        </div>
+    </nav>
 
-            <button onclick="handleGoogleAuth()" style="display:flex; align-items:center; justify-content:center; gap:12px; height: 55px;">
-                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" style="width:22px;">
-                CONTINUE WITH GOOGLE
-            </button>
-            <p style="font-size: 0.6rem; color: #444; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px;">Internal Access Only</p>
+    <div id="auth-section" style="height:100vh; display:flex; align-items:center; justify-content:center; background: #f0f2f5;">
+        <div style="background: white; padding: 30px; border-radius: 8px; width: 400px; box-shadow: 0 12px 28px rgba(0,0,0,0.2); text-align: center;">
+            <h1 style="color: #1877f2; font-size: 3rem; margin-bottom: 10px;">prodhub</h1>
+            <p style="color: #1c1e21; font-size: 1.2rem; margin-bottom: 20px;">Connect and manage production teams.</p>
+            <select id="user-role" style="width: 100%; background: #f5f6f7; color: black; border: 1px solid #ddd;">
+                <option value="Producer">Producer</option>
+                <option value="Associate Producer">Associate Producer</option>
+                <option value="Host">Program Host</option>
+                <option value="Editor">Video Editor</option>
+                <option value="Writer">Script Writer</option>
+                <option value="Camera">Camera/DP</option>
+            </select>
+            <button onclick="handleGoogleAuth()" style="background: #1877f2; color:white; width:100%; padding:15px; border-radius:6px; font-size:1.1rem; border:none; font-weight:bold; cursor:pointer;">Log In with Google</button>
         </div>
     </div>
 
     <div id="dashboard-section" class="hidden">
-        <nav>
-            <div class="nav-logo">
-                <img src="https://i.imgur.com/7d3ROpd.jpeg">
-                <span>PROD-HUB <small style="font-size: 0.6rem; opacity: 0.6;">PRO</small></span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <div style="text-align: right; line-height: 1.2;">
-                    <span id="role-tag" style="background:var(--accent-color); color:black; font-size:0.55rem; padding:3px 8px; border-radius:4px; font-weight:900; text-transform: uppercase;"></span><br>
-                    <span id="user-display" style="font-size:0.8rem; color:var(--text-main); font-weight: 700;"></span>
-                </div>
-                <button onclick="handleLogout()" style="width:auto; padding:10px 18px; font-size:0.7rem; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">LOGOUT</button>
-            </div>
-        </nav>
-
         <div class="dashboard-wrapper">
-            <div class="sidebar-left">
+            <div style="padding: 16px;" class="sidebar-left">
                 <div class="card">
-                    <h3><i data-lucide="bar-chart-3" class="icon-sm"></i> Dashboard Stats</h3>
-                    <div style="display: flex; gap: 12px;">
-                        <div class="stat-badge">
-                            <span class="stat-val" id="total-pitches-count">0</span>
-                            <span class="stat-label">Pitches</span>
-                        </div>
-                        <div class="stat-badge">
-                            <span class="stat-val" id="completed-pitches-count">0</span>
-                            <span class="stat-label">Wrapped</span>
-                        </div>
-                    </div>
+                    <h3><i data-lucide="user" class="icon-sm"></i> Profile</h3>
+                    <div id="greeting-msg" style="font-weight:bold; font-size: 1.1rem;"></div>
+                    <p id="role-greeting" style="font-size:0.8rem; color:var(--text-dim);"></p>
                 </div>
-
+                
                 <div id="host-meeting-panel" class="card hidden">
-                    <h3><i data-lucide="video" class="icon-sm"></i> Schedule Meeting</h3>
-                    <input type="text" id="meetTitle" placeholder="Agenda..." style="font-size:0.8rem;">
-                    <input type="datetime-local" id="meetTime">
-                    <button onclick="setMeeting()" style="background: #fff; font-size: 0.7rem; padding: 10px;">SET GLOBAL BANNER</button>
+                    <h3><i data-lucide="megaphone" class="icon-sm"></i> Create Announcement</h3>
+                    <input type="text" id="meetTitle" placeholder="What's the meeting about?" style="width:100%">
+                    <input type="datetime-local" id="meetTime" style="width:100%">
+                    <button onclick="setMeeting()" class="btn-fb-primary" style="width:100%; padding:10px;">Post to Global Banner</button>
                 </div>
 
                 <div class="card">
-                    <h3><i data-lucide="bell" class="icon-sm"></i> Announcements</h3>
-                    <div id="announcement-board" style="font-size: 0.85rem; max-height: 250px; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;"></div>
-                    <div style="display:flex; gap:8px;">
-                        <input type="text" id="newAnnouncement" placeholder="System message..." style="margin:0; font-size: 0.8rem; padding: 10px;">
-                        <button onclick="postAnnouncement()" style="width: 50px; padding:0; display:flex; align-items:center; justify-content:center;"><i data-lucide="send" style="width:18px;"></i></button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3><i data-lucide="plus-circle" class="icon-sm"></i> New Project Pitch</h3>
-                    <label style="font-size:0.6rem; color:var(--text-dim); font-weight: 800; margin-bottom: 5px; display: block;">PRIORITY LEVEL</label>
-                    <select id="pPriority" style="background: #000;">
-                        <option value="Normal">Normal</option>
-                        <option value="Urgent">Urgent</option>
-                        <option value="Backlog">Backlog</option>
-                    </select>
-                    <input type="date" id="pDate">
-                    <input type="text" id="pLoc" placeholder="Shooting Location">
-                    <input type="text" id="pCam" placeholder="Assign Camera (Email)">
-                    <input type="text" id="pEditor" placeholder="Assign Editor (Email)">
-                    <input type="url" id="pMedia" placeholder="Reference Link (URL)">
-                    <textarea id="pAbout" rows="4" placeholder="Story concept and production notes..."></textarea>
-                    <button onclick="addPitch()" style="height: 50px;">DEPLOY PITCH</button>
+                    <h3><i data-lucide="plus-square" class="icon-sm"></i> Create Pitch</h3>
+                    <select id="pPriority" style="width:100%"><option>Normal</option><option>Urgent</option></select>
+                    <input type="date" id="pDate" style="width:100%">
+                    <input type="text" id="pLoc" placeholder="Location" style="width:100%">
+                    <textarea id="pAbout" placeholder="What's on your mind? (Pitch details)" style="width:100%; height:80px;"></textarea>
+                    <button onclick="addPitch()" class="btn-fb-primary" style="width:100%; padding:10px;">Post Pitch</button>
                 </div>
             </div>
 
-            <div class="main-feed">
+            <div style="padding: 16px;">
                 <div class="hub-tabs">
-                    <div class="hub-tab active" id="tab-approval" onclick="switchTab('approval')">Pending Approval</div>
-                    <div class="hub-tab" id="tab-production" onclick="switchTab('production')">In Production</div>
-                    <div class="hub-tab" id="tab-airing" onclick="switchTab('airing')">Ready / Airing</div>
+                    <div class="hub-tab active" id="tab-approval" onclick="switchTab('approval')">Pending</div>
+                    <div class="hub-tab" id="tab-production" onclick="switchTab('production')">Production</div>
+                    <div class="hub-tab" id="tab-airing" onclick="switchTab('airing')">Airing</div>
                 </div>
-
-                <div style="margin-bottom: 20px;">
-                    <input type="text" id="feedSearch" placeholder="🔍 Search projects, locations, or crew..." style="margin:0; background: rgba(255,255,255,0.03); border: 1px solid #222;" onkeyup="filterFeed()">
-                </div>
-
-                <div class="card" style="min-height: 60vh;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; border-bottom: 1px solid #222; padding-bottom: 15px;">
-                        <h2 style="font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 10px;">
-                            <i data-lucide="layout-grid" class="icon-sm" style="color:var(--accent-color)"></i>
-                            <span id="board-title">Approval Board</span>
-                        </h2>
-                        <div id="clock" style="font-size:0.85rem; font-weight:800; color:var(--accent-color); font-family: monospace; background: #000; padding: 6px 12px; border-radius: 8px; border: 1px solid #222;"></div>
-                    </div>
-                    <div id="pitch-list">Loading creative feed...</div>
-                </div>
+                <div id="pitch-list"></div>
             </div>
 
-            <div class="sidebar-right">
-                <div class="card" id="greeting-card" style="background: linear-gradient(135deg, #1a1a1a 0%, #000 100%); border-left: 4px solid var(--accent-color);">
-                    <h4 id="greeting-msg" style="margin:0; font-size:1rem; color: var(--accent-color);">Welcome!</h4>
-                    <p id="role-greeting" style="font-size: 0.75rem; color: var(--text-dim); margin: 8px 0 15px 0;">All systems are nominal.</p>
-                    <div style="font-size: 0.65rem; color: var(--success); display: flex; align-items: center; gap: 8px; background: rgba(34,197,94,0.1); padding: 8px; border-radius: 6px;">
-                        <i data-lucide="zap" style="width:14px;"></i> Server: Philippines North
+            <div class="chat-sidebar">
+                <h3 style="padding-left:8px;">CONTACTS</h3>
+                <div id="contact-list"></div>
+                
+                <div id="private-chat-box" class="card hidden" style="position:fixed; bottom:0; right:320px; width:300px; margin-bottom:0; border-radius:8px 8px 0 0; z-index:2000;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:var(--border-style); padding-bottom:10px;">
+                        <span id="chat-with-name" style="font-weight:bold; font-size:0.8rem;">Chat</span>
+                        <button onclick="closeChat()" style="background:none; border:none; color:white; cursor:pointer;">✕</button>
                     </div>
-                </div>
-
-                <div class="card">
-                    <h3><i data-lucide="message-square" class="icon-sm"></i> Private Hub</h3>
-                    <div class="chat-container">
-                        <div id="chat-messages"></div>
-                        <select id="chat-recipient" style="font-size:0.7rem; padding:8px; background:#000;"></select>
-                        <div style="display:flex; gap:5px;">
-                            <input type="text" id="chat-input" placeholder="Message..." style="margin:0; font-size: 0.75rem; padding: 8px;">
-                            <button onclick="sendPrivateMsg()" style="width:40px; padding:0;"><i data-lucide="send" style="width:14px;"></i></button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3><i data-lucide="list-todo" class="icon-sm"></i> Personal Tasks</h3>
-                    <div id="task-list"></div>
-                    <div style="display:flex; gap:8px; margin-top:15px;">
-                        <input type="text" id="newTask" placeholder="Add a task..." style="margin:0; padding: 10px;">
-                        <button onclick="addTask()" style="width:45px; padding: 0;">+</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3><i data-lucide="settings" class="icon-sm"></i> Identity</h3>
-                    <div style="display:flex; flex-direction: column; gap:8px;">
-                        <input type="text" id="updateNameInput" placeholder="Update Display Name" style="margin:0; font-size: 0.8rem;">
-                        <button onclick="updateProfileName()" style="background: #222; color: #fff; font-size: 0.7rem; padding: 10px;">UPDATE PROFILE</button>
+                    <div id="chat-messages" style="height:250px; overflow-y:auto; padding:10px 0; font-size:0.8rem;"></div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="chat-input" placeholder="Aa" style="margin:0; flex:1;">
+                        <button onclick="sendPrivateMsg()" class="btn-fb-primary" style="padding:0 10px;">Send</button>
                     </div>
                 </div>
             </div>
@@ -364,6 +223,7 @@
     </div>
 
     <script>
+        // CONFIG & INIT (Keep your existing Firebase Config)
         const firebaseConfig = {
             apiKey: "AIzaSyCWyMPS1vabyK_uGAWzmmeW9iuL7ksEUBE",
             authDomain: "prod-hub-d43c4.firebaseapp.com",
@@ -372,7 +232,6 @@
             messagingSenderId: "262638128725",
             appId: "1:262638128725:web:12136df5187f89deff8edc"
         };
-
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -380,407 +239,189 @@
 
         let currentHubTab = 'approval';
         let currentUserRole = '';
+        let activeChatRecipient = '';
 
         lucide.createIcons();
 
-        function switchTab(tab) {
-            currentHubTab = tab;
-            document.querySelectorAll('.hub-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            
-            const titles = { approval: 'Approval Board', production: 'Production Hub', airing: 'Airing Schedule' };
-            document.getElementById('board-title').innerText = titles[tab];
-            loadGlobalPitches();
-        }
-
-        function filterFeed() {
-            const query = document.getElementById('feedSearch').value.toLowerCase();
-            const rows = document.querySelectorAll('.pitch-row');
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(query) ? "block" : "none";
-            });
-        }
-
-        setInterval(() => {
-            const now = new Date();
-            const clockEl = document.getElementById('clock');
-            if(clockEl) clockEl.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-        }, 1000);
-
+        // AUTH LOGIC
         auth.onAuthStateChanged(async user => {
             if (user) {
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('dashboard-section').classList.remove('hidden');
+                document.getElementById('main-nav').classList.remove('hidden');
                 
                 const userDoc = await db.collection("users").doc(user.uid).get();
                 if(userDoc.exists) {
-                    const userData = userDoc.data();
-                    currentUserRole = userData.role;
+                    currentUserRole = userDoc.data().role;
                     document.getElementById('role-tag').innerText = currentUserRole;
-                    document.getElementById('user-display').innerText = userData.displayName || user.displayName || user.email.split('@')[0].toUpperCase();
-                    
-                    const hour = new Date().getHours();
-                    let timeGreet = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
-                    document.getElementById('greeting-msg').innerText = `${timeGreet}, ${currentUserRole}!`;
-                    document.getElementById('role-greeting').innerText = `Ready to lead the crew, ${userData.displayName || 'Chief'}?`;
+                    document.getElementById('user-display').innerText = userDoc.data().displayName;
+                    document.getElementById('greeting-msg').innerText = `Hi, ${userDoc.data().displayName}!`;
                     
                     if(currentUserRole === 'Host') {
                         document.getElementById('host-meeting-panel').classList.remove('hidden');
-                        document.getElementById('close-meeting-btn').style.display = 'block';
+                        document.getElementById('close-meeting-btn').style.display = 'inline-block';
                     }
                 }
-
                 loadGlobalPitches();
-                loadPersonalTasks(user.uid);
-                loadAnnouncements();
                 loadMeetingBanner();
-                loadUsersForChat();
-                loadPrivateMessages(user.email);
+                loadContacts();
             } else {
                 document.getElementById('auth-section').classList.remove('hidden');
                 document.getElementById('dashboard-section').classList.add('hidden');
+                document.getElementById('main-nav').classList.add('hidden');
             }
         });
 
-        // MEETING SYSTEM
-        async function setMeeting() {
-            const title = document.getElementById('meetTitle').value;
-            const time = document.getElementById('meetTime').value;
-            if(!title || !time) return alert("Complete the meeting details.");
-            await db.collection("settings").doc("currentMeeting").set({
-                text: `MEETING: ${title} @ ${new Date(time).toLocaleString()}`,
-                active: true
-            });
-            alert("Banner set for all employees!");
-        }
-
-        async function clearMeeting() {
-            await db.collection("settings").doc("currentMeeting").update({ active: false });
-        }
-
-        function loadMeetingBanner() {
-            db.collection("settings").doc("currentMeeting").onSnapshot(doc => {
-                const banner = document.getElementById('meeting-banner');
-                if(doc.exists && doc.data().active) {
-                    banner.style.display = 'flex';
-                    document.getElementById('meeting-text').innerText = doc.data().text;
-                } else {
-                    banner.style.display = 'none';
-                }
-            });
-        }
-
-        // CHAT SYSTEM
-        async function loadUsersForChat() {
-            const snapshot = await db.collection("users").get();
-            const select = document.getElementById('chat-recipient');
-            select.innerHTML = '<option value="">Select Recipient...</option>' + 
-                snapshot.docs
-                .filter(doc => doc.data().email !== auth.currentUser.email)
-                .map(doc => `<option value="${doc.data().email}">${doc.data().displayName} (${doc.data().role})</option>`).join('');
-        }
-
-        async function sendPrivateMsg() {
-            const recipient = document.getElementById('chat-recipient').value;
-            const text = document.getElementById('chat-input').value;
-            if(!recipient || !text) return;
-
-            await db.collection("messages").add({
-                sender: auth.currentUser.email,
-                receiver: recipient,
-                text: text,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            document.getElementById('chat-input').value = '';
-        }
-
-        function loadPrivateMessages(myEmail) {
-            db.collection("messages")
-                .where("receiver", "==", myEmail)
-                .orderBy("createdAt", "desc")
-                .limit(20)
-                .onSnapshot(snapshot => {
-                    const box = document.getElementById('chat-messages');
-                    box.innerHTML = snapshot.docs.map(doc => `
-                        <div class="msg-bubble">
-                            <div class="msg-meta">FROM: ${doc.data().sender}</div>
-                            <div>${doc.data().text}</div>
-                        </div>
-                    `).join('');
-                });
-        }
-
-        async function updateProfileName() {
-            const newName = document.getElementById('updateNameInput').value;
-            if(!newName) return alert("Enter a name");
-            const user = auth.currentUser;
-            await db.collection("users").doc(user.uid).update({ displayName: newName });
-            document.getElementById('user-display').innerText = newName;
-            document.getElementById('updateNameInput').value = '';
-            alert("Name updated successfully!");
-        }
-
-        async function handleGoogleAuth() {
-            const selectedRole = document.getElementById('user-role').value;
-            try {
-                const result = await auth.signInWithPopup(provider);
-                const user = result.user;
-                const userDoc = await db.collection("users").doc(user.uid).get();
-                if (!userDoc.exists) {
-                    await db.collection("users").doc(user.uid).set({
-                        role: selectedRole,
-                        email: user.email,
-                        displayName: user.displayName || user.email.split('@')[0]
-                    });
-                }
-            } catch(err) {
-                alert("Login Error: " + err.message);
-            }
-        }
-
-        function handleLogout() { auth.signOut(); }
-
-        function loadAnnouncements() {
-            db.collection("announcements").orderBy("createdAt", "desc").limit(10).onSnapshot(snapshot => {
-                const board = document.getElementById('announcement-board');
-                board.innerHTML = snapshot.docs.map(doc => `
-                    <div class="announcement-item">
-                        <div style="color:var(--accent-color); font-weight:800; font-size:0.6rem; text-transform:uppercase;">${doc.data().author}</div>
-                        <div style="margin-top:2px;">${doc.data().text}</div>
-                    </div>
-                `).join('');
-            });
-        }
-
-        async function postAnnouncement() {
-            const txt = document.getElementById('newAnnouncement').value;
-            if(!txt) return;
-            const userDoc = await db.collection("users").doc(auth.currentUser.uid).get();
-            const authorName = userDoc.exists ? userDoc.data().displayName : (auth.currentUser.displayName || auth.currentUser.email.split('@')[0]);
-            
-            await db.collection("announcements").add({
-                text: txt,
-                author: authorName,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            document.getElementById('newAnnouncement').value = '';
-        }
-
-        function loadGlobalPitches() {
-            db.collection("pitches").orderBy("createdAt", "desc").onSnapshot(snapshot => {
-                const list = document.getElementById('pitch-list');
-                let total = snapshot.size;
-                let completed = 0;
-
-                const filteredDocs = snapshot.docs.filter(doc => {
-                    const p = doc.data();
-                    const isFullyDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done' && p.tasks?.vo === 'done';
-                    if(isFullyDone) completed++;
-
-                    if (currentHubTab === 'approval') return !p.approved;
-                    if (currentHubTab === 'production') return p.approved && !isFullyDone;
-                    if (currentHubTab === 'airing') return p.approved && isFullyDone;
-                    return true;
-                });
-
-                if(filteredDocs.length === 0) {
-                    list.innerHTML = `<div style="text-align:center; padding:60px; color:#444; font-size:0.9rem;">No active projects in this stage.</div>`;
-                } else {
-                    list.innerHTML = filteredDocs.map(doc => {
-                        const p = doc.data();
-                        const isOwner = auth.currentUser.email === p.author;
-                        const priorityClass = p.priority === 'Urgent' ? 'priority-high' : '';
-                        const tagClass = p.priority === 'Urgent' ? 'tag-urgent' : '';
-                        const isStoryDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done' && p.tasks?.vo === 'done';
-                        const storyDoneClass = isStoryDone ? 'status-done' : '';
-                        
-                        const canApprove = (currentUserRole === 'Associate Producer' || currentUserRole === 'Host' || currentUserRole === 'Producer');
-
-                        const isAssignedEditor = auth.currentUser.email === p.editor;
-                        const isAssignedCam = auth.currentUser.email === p.cameraman;
-                        const hasFullAccess = canApprove || isOwner;
-
-                        return `
-                            <div class="pitch-row ${priorityClass} ${storyDoneClass}">
-                                <span class="priority-tag ${tagClass}">${p.priority || 'Normal'}</span>
-                                ${isStoryDone ? '<span class="airing-tag">READY FOR AIRING</span>' : ''}
-                                <div style="font-weight:800; color:var(--accent-color); margin-bottom:8px; font-size: 1rem;">
-                                    <i data-lucide="calendar" class="icon-sm"></i> ${p.date || 'TBD'}
-                                </div>
-                                <div class="assignment-box">
-                                    <span><i data-lucide="camera" class="icon-sm"></i> CAM: <b>${p.cameraman || 'Unassigned'}</b></span>
-                                    <span><i data-lucide="scissors" class="icon-sm"></i> EDITOR: <b>${p.editor || 'Unassigned'}</b></span>
-                                </div>
-                                <div style="font-size:0.75rem; color:#888; margin: 10px 0; display:flex; align-items:center; gap:5px;">
-                                    <i data-lucide="map-pin" class="icon-sm"></i> LOC: ${p.location}
-                                </div>
-                                <div style="color:#ddd; background:rgba(0,0,0,0.3); padding:18px; border-radius:12px; font-size:0.9rem; border: 1px solid rgba(255,255,255,0.05); line-height:1.6;">
-                                    ${p.about}
-                                    <div style="margin-top:15px; display:flex; flex-wrap:wrap; gap:10px;">
-                                        ${p.mediaLink ? `<a href="${p.mediaLink}" target="_blank" class="media-link-btn"><i data-lucide="link" class="icon-sm"></i> REF</a>` : ''}
-                                        ${p.scriptLink ? `<a href="${p.scriptLink}" target="_blank" class="media-link-btn" style="color:var(--success); border-color:var(--success)"><i data-lucide="file-text" class="icon-sm"></i> SCRIPT</a>` : ''}
-                                        ${p.voLink ? `<a href="${p.voLink}" target="_blank" class="media-link-btn" style="color:var(--ongoing); border-color:var(--ongoing)"><i data-lucide="mic" class="icon-sm"></i> VO</a>` : ''}
-                                    </div>
-                                </div>
-                                
-                                ${p.approved ? `
-                                <div class="prod-tasks">
-                                    <span style="font-size:0.6rem; color:var(--accent-color); font-weight:900; letter-spacing: 1px; text-transform:uppercase;">Production Pipeline</span>
-                                    <div class="task-grid">
-                                        <div class="task-btn ${p.tasks?.script || ''}" onclick="handleScriptAction('${doc.id}', '${p.tasks?.script || ''}', ${hasFullAccess})">
-                                            <i data-lucide="file-edit" class="icon-sm"></i> 
-                                            SCRIPT
-                                        </div>
-                                        <div class="task-btn ${p.tasks?.shoot || ''}" onclick="updateBasicTask('${doc.id}', 'shoot', '${p.tasks?.shoot || ''}', ${hasFullAccess || isAssignedCam})">
-                                            <i data-lucide="video" class="icon-sm"></i> SHOOT
-                                        </div>
-                                        <div class="task-btn ${p.tasks?.edit || ''}" onclick="updateBasicTask('${doc.id}', 'edit', '${p.tasks?.edit || ''}', ${hasFullAccess || isAssignedEditor})">
-                                            <i data-lucide="film" class="icon-sm"></i> EDIT
-                                        </div>
-                                        <div class="task-btn ${p.tasks?.vo || ''}" onclick="handleVOAction('${doc.id}', '${p.tasks?.vo || ''}', ${currentUserRole === 'Host' || canApprove})">
-                                            <i data-lucide="mic-2" class="icon-sm"></i> VO
-                                        </div>
-                                    </div>
-                                </div>
-                                ` : ''}
-
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:15px; border-top: 1px solid rgba(255,255,255,0.05);">
-                                    <span style="font-size:0.6rem; color:#444;">CREATOR: ${p.author}</span>
-                                    <div style="display:flex; gap:10px;">
-                                        ${!p.approved && canApprove ? `<button class="btn-approve" onclick="approvePitch('${doc.id}')">APPROVE</button>` : ''}
-                                        ${isOwner ? `<button class="btn-delete" onclick="deletePitch('${doc.id}')"><i data-lucide="trash-2" style="width:12px;"></i></button>` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-                
-                document.getElementById('total-pitches-count').innerText = total;
-                document.getElementById('completed-pitches-count').innerText = completed;
-                lucide.createIcons();
-            });
-        }
-
-        async function handleScriptAction(id, currentStatus, isAdmin) {
-            if (currentStatus === "" || currentStatus === "ongoing") {
-                const link = prompt("Paste Script Link (Google Docs/Drive):");
-                if (link) {
-                    await db.collection("pitches").doc(id).update({ 
-                        scriptLink: link, 
-                        "tasks.script": "pending" 
-                    });
-                    alert("Script submitted for approval.");
-                }
-            } else if (currentStatus === "pending") {
-                if (isAdmin) {
-                    if (confirm("Approve this script? Status will turn GREEN.")) {
-                        await db.collection("pitches").doc(id).update({ "tasks.script": "done" });
-                    }
-                } else {
-                    alert("Waiting for Associate Producer/Host approval.");
-                }
-            } else {
-                if(isAdmin && confirm("Reset Script status?")) {
-                    await db.collection("pitches").doc(id).update({ "tasks.script": "" });
-                }
-            }
-        }
-
-        async function handleVOAction(id, currentStatus, isHost) {
-            if (!isHost) return alert("Only the Program Host or Producers can update Voice Over.");
-            
-            if (currentStatus === "" || currentStatus === "ongoing") {
-                const link = prompt("Paste Voice Over File Link:");
-                if (link) {
-                    await db.collection("pitches").doc(id).update({ 
-                        voLink: link, 
-                        "tasks.vo": "done" 
-                    });
-                }
-            } else {
-                if(confirm("Reset VO status?")) {
-                    await db.collection("pitches").doc(id).update({ "tasks.vo": "" });
-                }
-            }
-        }
-
-        async function updateBasicTask(docId, taskType, currentStatus, hasPermission) {
-            if (!hasPermission) return alert("You are not assigned to this role for this segment.");
-            
-            let nextStatus = "";
-            if (currentStatus === "") nextStatus = "ongoing";
-            else if (currentStatus === "ongoing") nextStatus = "done";
-            else nextStatus = "";
-            
-            const updateObj = {};
-            updateObj[`tasks.${taskType}`] = nextStatus;
-            await db.collection("pitches").doc(docId).update(updateObj);
-        }
-
-        async function approvePitch(id) {
-            if(confirm("Approve this story for production?")) {
-                await db.collection("pitches").doc(id).update({ approved: true });
-                switchTab('production');
-            }
-        }
-
-        async function addPitch() {
-            const about = document.getElementById('pAbout').value;
-            if(!about) return alert("Please enter story details.");
-            await db.collection("pitches").add({
-                priority: document.getElementById('pPriority').value,
-                date: document.getElementById('pDate').value,
-                location: document.getElementById('pLoc').value,
-                cameraman: document.getElementById('pCam').value, 
-                editor: document.getElementById('pEditor').value,    
-                mediaLink: document.getElementById('pMedia').value,
-                about: about,
-                author: auth.currentUser.email,
-                approved: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                tasks: { script: "", shoot: "", edit: "", vo: "" }
-            });
-            ['pAbout', 'pLoc', 'pCam', 'pEditor', 'pDate', 'pMedia'].forEach(id => document.getElementById(id).value = '');
-            switchTab('approval');
-        }
-
-        async function deletePitch(id) {
-            if(confirm("Delete this pitch?")) {
-                await db.collection("pitches").doc(id).delete();
-            }
-        }
-
-        function loadPersonalTasks(uid) {
-            db.collection("tasks").where("uid", "==", uid).orderBy("createdAt", "asc").onSnapshot(snapshot => {
-                const list = document.getElementById('task-list');
-                list.innerHTML = snapshot.docs.map(doc => {
-                    const t = doc.data();
+        // FB STYLE FUNCTIONS
+        async function loadContacts() {
+            db.collection("users").onSnapshot(snap => {
+                const list = document.getElementById('contact-list');
+                list.innerHTML = snap.docs.map(doc => {
+                    const u = doc.data();
+                    if(u.email === auth.currentUser.email) return '';
                     return `
-                        <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.3); padding:12px; margin-bottom:8px; border-radius:10px; font-size:0.8rem; border: 1px solid rgba(255,255,255,0.05);">
-                            <span style="${t.done ? 'text-decoration:line-through; opacity:0.3' : ''}">${t.text}</span>
-                            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask('${doc.id}', ${t.done})" style="width:auto; margin:0; cursor:pointer;">
+                        <div class="contact-item" onclick="openChat('${u.email}', '${u.displayName}')">
+                            <div style="position:relative">
+                                <div class="post-avatar">${u.displayName[0]}</div>
+                                <div class="online-dot"></div>
+                            </div>
+                            <span>${u.displayName}</span>
                         </div>
                     `;
                 }).join('');
             });
         }
 
-        async function addTask() {
-            const val = document.getElementById('newTask').value;
-            if(!val) return;
-            await db.collection("tasks").add({
-                uid: auth.currentUser.uid,
-                text: val,
-                done: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            document.getElementById('newTask').value = '';
+        function openChat(email, name) {
+            activeChatRecipient = email;
+            document.getElementById('chat-with-name').innerText = name;
+            document.getElementById('private-chat-box').classList.remove('hidden');
+            loadPrivateMessages();
         }
 
-        async function toggleTask(id, status) {
-            await db.collection("tasks").doc(id).update({ done: !status });
+        function closeChat() { document.getElementById('private-chat-box').classList.add('hidden'); }
+
+        async function sendPrivateMsg() {
+            const txt = document.getElementById('chat-input').value;
+            if(!txt || !activeChatRecipient) return;
+            await db.collection("messages").add({
+                sender: auth.currentUser.email,
+                receiver: activeChatRecipient,
+                text: txt,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('chat-input').value = '';
+        }
+
+        function loadPrivateMessages() {
+            db.collection("messages")
+                .where("receiver", "in", [auth.currentUser.email, activeChatRecipient])
+                .orderBy("createdAt", "asc")
+                .onSnapshot(snap => {
+                    const box = document.getElementById('chat-messages');
+                    box.innerHTML = snap.docs
+                        .filter(doc => (doc.data().sender === auth.currentUser.email && doc.data().receiver === activeChatRecipient) || 
+                                       (doc.data().sender === activeChatRecipient && doc.data().receiver === auth.currentUser.email))
+                        .map(doc => {
+                            const isMe = doc.data().sender === auth.currentUser.email;
+                            return `
+                                <div style="display:flex; justify-content:${isMe ? 'flex-end' : 'flex-start'}; margin-bottom:8px;">
+                                    <div style="background:${isMe ? '#0084ff' : '#3e4042'}; padding:8px 12px; border-radius:18px; max-width:80%;">
+                                        ${doc.data().text}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    box.scrollTop = box.scrollHeight;
+                });
+        }
+
+        // PITCH FEED (FB STYLE)
+        function loadGlobalPitches() {
+            db.collection("pitches").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+                const list = document.getElementById('pitch-list');
+                const filtered = snapshot.docs.filter(doc => {
+                    const p = doc.data();
+                    const done = p.tasks?.script==='done' && p.tasks?.shoot==='done' && p.tasks?.edit==='done';
+                    if(currentHubTab === 'approval') return !p.approved;
+                    if(currentHubTab === 'production') return p.approved && !done;
+                    return p.approved && done;
+                });
+
+                list.innerHTML = filtered.map(doc => {
+                    const p = doc.data();
+                    return `
+                        <div class="pitch-row">
+                            <div class="post-header">
+                                <div class="post-avatar">${p.author[0].toUpperCase()}</div>
+                                <div>
+                                    <div style="font-weight:bold">${p.author}</div>
+                                    <div style="font-size:0.7rem; color:var(--text-dim)">${p.priority} • ${p.location}</div>
+                                </div>
+                            </div>
+                            <div style="margin-bottom:15px;">${p.about}</div>
+                            <div style="border-top:var(--border-style); padding-top:10px; display:flex; gap:10px;">
+                                ${!p.approved && (currentUserRole==='Producer'||currentUserRole==='Host') ? 
+                                `<button onclick="approvePitch('${doc.id}')" class="btn-fb-primary" style="flex:1">Approve Project</button>` : ''}
+                                <button class="btn-fb" style="flex:1">View Details</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+
+        // Keep existing meeting logic
+        async function setMeeting() {
+            const title = document.getElementById('meetTitle').value;
+            const time = document.getElementById('meetTime').value;
+            if(!title || !time) return;
+            await db.collection("settings").doc("currentMeeting").set({
+                text: `📢 MEETING: ${title} @ ${new Date(time).toLocaleString()}`,
+                active: true
+            });
+        }
+
+        function loadMeetingBanner() {
+            db.collection("settings").doc("currentMeeting").onSnapshot(doc => {
+                const banner = document.getElementById('meeting-banner');
+                if(doc.exists && doc.data().active) {
+                    banner.style.display = 'block';
+                    document.getElementById('meeting-text').innerText = doc.data().text;
+                } else { banner.style.display = 'none'; }
+            });
+        }
+
+        function clearMeeting() { db.collection("settings").doc("currentMeeting").update({ active: false }); }
+        function switchTab(tab) {
+            currentHubTab = tab;
+            document.querySelectorAll('.hub-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            loadGlobalPitches();
+        }
+        async function handleGoogleAuth() {
+            const role = document.getElementById('user-role').value;
+            const res = await auth.signInWithPopup(provider);
+            const userDoc = await db.collection("users").doc(res.user.uid).get();
+            if(!userDoc.exists) {
+                await db.collection("users").doc(res.user.uid).set({
+                    role: role, email: res.user.email, displayName: res.user.displayName
+                });
+            }
+        }
+        function handleLogout() { auth.signOut(); }
+        async function approvePitch(id) { await db.collection("pitches").doc(id).update({ approved: true }); }
+        async function addPitch() {
+            await db.collection("pitches").add({
+                priority: document.getElementById('pPriority').value,
+                location: document.getElementById('pLoc').value,
+                about: document.getElementById('pAbout').value,
+                date: document.getElementById('pDate').value,
+                author: auth.currentUser.email,
+                approved: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('pAbout').value = '';
         }
     </script>
 </body>
