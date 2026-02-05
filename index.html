@@ -22,16 +22,17 @@
 
         .auth-container { max-width: 400px; margin: 100px auto; background: var(--card-bg); padding: 40px; border-radius: 12px; text-align: center; border-top: 5px solid var(--primary-yellow); }
         
-        .dashboard-wrapper { max-width: 1200px; margin: 2rem auto; padding: 0 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .dashboard-wrapper { max-width: 1200px; margin: 2rem auto; padding: 0 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
         
         .card { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #333; }
         .card h3 { margin-top: 0; color: var(--primary-yellow); border-bottom: 1px solid #333; padding-bottom: 10px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
 
         input, textarea { 
-            width: 100%; padding: 12px; margin: 10px 0; background: #2a2a2a; border: 1px solid #444; 
+            width: 100%; padding: 10px; margin: 5px 0 15px 0; background: #2a2a2a; border: 1px solid #444; 
             color: white; border-radius: 6px; box-sizing: border-box; 
         }
-        input:focus { border-color: var(--primary-yellow); outline: none; }
+        input:focus, textarea:focus { border-color: var(--primary-yellow); outline: none; }
+        label { font-size: 0.8rem; color: #aaa; }
 
         button { 
             background: var(--primary-yellow); color: #000; border: none; padding: 12px 20px; 
@@ -42,18 +43,14 @@
         .btn-small { width: auto; padding: 6px 12px; font-size: 0.7rem; margin: 0; }
 
         .item-row { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 12px; background: #252525; margin-bottom: 8px; border-radius: 6px; 
+            padding: 15px; background: #252525; margin-bottom: 10px; border-radius: 6px; 
             border-left: 4px solid var(--primary-yellow);
         }
-        .item-row.completed { border-left-color: #555; opacity: 0.6; }
-        .item-row.completed span { text-decoration: line-through; }
-        
+        .pitch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; margin-top: 5px; color: #bbb; }
+        .pitch-about { grid-column: span 2; border-top: 1px solid #333; padding-top: 8px; margin-top: 5px; color: #eee; }
+
         .link-item { display: block; color: var(--primary-yellow); text-decoration: none; padding: 5px 0; font-size: 0.9rem; }
-        .link-item:hover { text-decoration: underline; }
-
-        .tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: #333; color: var(--primary-yellow); margin-right: 8px; }
-
+        
         @media (max-width: 768px) { .dashboard-wrapper { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -79,27 +76,42 @@
         <div class="dashboard-wrapper">
             <div class="main-content">
                 <div class="card">
-                    <h3>🎬 Production Checklist</h3>
-                    <div id="task-list"></div>
-                    <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <input type="text" id="newTask" placeholder="Add task..." style="margin:0;">
-                        <button onclick="addTask()" style="width: 100px; margin:0;">ADD</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3>💡 Story Pitches</h3>
+                    <h3>💡 Global Story Pitches (Visible to All)</h3>
                     <div id="pitch-list"></div>
-                    <textarea id="newPitch" placeholder="Write a new story pitch..." rows="2"></textarea>
-                    <button onclick="addPitch()">SUBMIT PITCH</button>
+                    
+                    <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+                    
+                    <h3>Create New Pitch</h3>
+                    <label>Shooting Date</label>
+                    <input type="date" id="pitchDate">
+                    
+                    <label>Location</label>
+                    <input type="text" id="pitchLocation" placeholder="e.g. Studio A, Quezon City">
+                    
+                    <label>Cameraman</label>
+                    <input type="text" id="pitchCameraman" placeholder="Name of assigned cameraman">
+                    
+                    <label>About the Story</label>
+                    <textarea id="pitchAbout" placeholder="Briefly explain the pitch..." rows="3"></textarea>
+                    
+                    <button onclick="addPitch()">SUBMIT TO TEAM BOARD</button>
                 </div>
             </div>
 
             <div class="sidebar">
                 <div class="card">
+                    <h3>🎬 My Personal Checklist</h3>
+                    <div id="task-list"></div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <input type="text" id="newTask" placeholder="Add task..." style="margin:0;">
+                        <button onclick="addTask()" style="width: 80px; margin:0;">ADD</button>
+                    </div>
+                </div>
+
+                <div class="card">
                     <h3>🔗 Quick Links</h3>
                     <div id="link-list"></div>
-                    <input type="text" id="linkName" placeholder="Name (e.g. Drive)">
+                    <input type="text" id="linkName" placeholder="Name">
                     <input type="text" id="linkUrl" placeholder="URL">
                     <button onclick="addLink()" class="btn-outline">SAVE LINK</button>
                 </div>
@@ -139,19 +151,58 @@
 
     function signOut() { _supabase.auth.signOut(); location.reload(); }
 
-    // DATA LOADING
     function loadAllData(userId) {
         fetchTasks(userId);
-        fetchPitches(userId);
+        fetchPitches(); // No userId filter so everyone sees everything
         fetchLinks(userId);
     }
 
+    // PITCHES LOGIC (Public)
+    async function fetchPitches() {
+        // Inaalis ang .eq('user_id') para makita ng lahat
+        const { data } = await _supabase.from('pitches').select('*').order('created_at', { ascending: false });
+        if (data) {
+            document.getElementById('pitch-list').innerHTML = data.map(p => `
+                <div class="item-row">
+                    <div style="color:var(--primary-yellow); font-weight:bold; font-size:1rem;">📅 ${p.shooting_date || 'TBD'}</div>
+                    <div class="pitch-grid">
+                        <span>📍 <b>Loc:</b> ${p.location || 'N/A'}</span>
+                        <span>🎥 <b>Cam:</b> ${p.cameraman || 'N/A'}</span>
+                    </div>
+                    <div class="pitch-about">${p.about || 'No details provided.'}</div>
+                </div>
+            `).join('');
+        }
+    }
+
+    async function addPitch() {
+        const { data: { user } } = await _supabase.auth.getUser();
+        const pitchData = {
+            shooting_date: document.getElementById('pitchDate').value,
+            location: document.getElementById('pitchLocation').value,
+            cameraman: document.getElementById('pitchCameraman').value,
+            about: document.getElementById('pitchAbout').value,
+            user_id: user.id
+        };
+
+        const { error } = await _supabase.from('pitches').insert([pitchData]);
+        if (error) alert(error.message);
+        else {
+            document.getElementById('pitchDate').value = '';
+            document.getElementById('pitchLocation').value = '';
+            document.getElementById('pitchCameraman').value = '';
+            document.getElementById('pitchAbout').value = '';
+            fetchPitches();
+        }
+    }
+
+    // TASKS & LINKS LOGIC (Private)
     async function fetchTasks(userId) {
         const { data } = await _supabase.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: true });
         if (data) {
             document.getElementById('task-list').innerHTML = data.map(t => `
-                <div class="item-row ${t.is_completed ? 'completed' : ''}">
-                    <span>${t.task_name}</span>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; background:#252525; padding:10px; border-radius:6px;">
+                    <span style="${t.is_completed ? 'text-decoration:line-through; opacity:0.5' : ''}">${t.task_name}</span>
                     <button class="btn-small" onclick="toggleTask('${t.id}', ${t.is_completed})">${t.is_completed ? 'UNDO' : 'DONE'}</button>
                 </div>
             `).join('');
@@ -160,9 +211,9 @@
 
     async function addTask() {
         const { data: { user } } = await _supabase.auth.getUser();
-        const name = document.getElementById('newTask').value;
-        if (!name) return;
-        await _supabase.from('tasks').insert([{ task_name: name, user_id: user.id }]);
+        const val = document.getElementById('newTask').value;
+        if (!val) return;
+        await _supabase.from('tasks').insert([{ task_name: val, user_id: user.id }]);
         document.getElementById('newTask').value = '';
         fetchTasks(user.id);
     }
@@ -173,25 +224,6 @@
         fetchTasks(user.id);
     }
 
-    // PITCHES (Needs 'pitches' table: id, user_id, content)
-    async function fetchPitches(userId) {
-        const { data } = await _supabase.from('pitches').select('*').eq('user_id', userId);
-        if (data) {
-            document.getElementById('pitch-list').innerHTML = data.map(p => `
-                <div class="item-row"><span>${p.content}</span></div>
-            `).join('');
-        }
-    }
-
-    async function addPitch() {
-        const { data: { user } } = await _supabase.auth.getUser();
-        const content = document.getElementById('newPitch').value;
-        await _supabase.from('pitches').insert([{ content, user_id: user.id }]);
-        document.getElementById('newPitch').value = '';
-        fetchPitches(user.id);
-    }
-
-    // LINKS (Needs 'links' table: id, user_id, name, url)
     async function fetchLinks(userId) {
         const { data } = await _supabase.from('links').select('*').eq('user_id', userId);
         if (data) {
