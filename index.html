@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROD-HUB | Production Management</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>PROD-HUB | Professional Production Management</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --primary-yellow: #ffcc00;
@@ -21,7 +23,6 @@
         .nav-logo { font-weight: 800; letter-spacing: 2px; color: var(--primary-yellow); font-size: 1.2rem; }
 
         .auth-container { max-width: 400px; margin: 100px auto; background: var(--card-bg); padding: 40px; border-radius: 12px; text-align: center; border-top: 5px solid var(--primary-yellow); }
-        
         .dashboard-wrapper { max-width: 1200px; margin: 2rem auto; padding: 0 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
         
         .card { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #333; }
@@ -42,15 +43,15 @@
         .btn-outline { background: transparent; border: 1px solid var(--primary-yellow); color: var(--primary-yellow); margin-top: 10px; }
         .btn-small { width: auto; padding: 6px 12px; font-size: 0.7rem; margin: 0; }
 
-        .item-row { 
-            padding: 15px; background: #252525; margin-bottom: 10px; border-radius: 6px; 
-            border-left: 4px solid var(--primary-yellow);
-        }
-        .pitch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; margin-top: 5px; color: #bbb; }
-        .pitch-about { grid-column: span 2; border-top: 1px solid #333; padding-top: 8px; margin-top: 5px; color: #eee; }
+        /* Pitches Styling */
+        .pitch-row { padding: 15px; background: #252525; margin-bottom: 10px; border-radius: 6px; border-left: 4px solid var(--primary-yellow); }
+        .pitch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; color: #bbb; margin: 5px 0; }
+        .pitch-about { border-top: 1px solid #333; padding-top: 8px; margin-top: 5px; color: #eee; font-size: 0.9rem; }
 
-        .link-item { display: block; color: var(--primary-yellow); text-decoration: none; padding: 5px 0; font-size: 0.9rem; }
-        
+        /* Checklist Styling */
+        .task-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #252525; margin-bottom: 8px; border-radius: 6px; }
+        .completed { opacity: 0.5; text-decoration: line-through; }
+
         @media (max-width: 768px) { .dashboard-wrapper { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -60,189 +61,181 @@
         <div class="nav-logo" style="margin-bottom: 20px;">PRODUCTION HUB</div>
         <input type="email" id="email" placeholder="Work Email">
         <input type="password" id="password" placeholder="Password">
-        <button onclick="signIn()">LOG IN</button>
-        <button onclick="signUp()" class="btn-outline">REGISTER TEAM MEMBER</button>
+        <button onclick="handleLogin()">LOG IN</button>
+        <button onclick="handleSignup()" class="btn-outline">REGISTER TEAM MEMBER</button>
     </div>
 
     <div id="dashboard-section" class="hidden">
         <nav>
             <div class="nav-logo">PROD-HUB</div>
             <div>
-                <span id="user-email" style="margin-right: 15px; font-size: 0.8rem; opacity: 0.7;"></span>
-                <button onclick="signOut()" class="btn-small btn-outline">LOGOUT</button>
+                <span id="user-display" style="margin-right: 15px; font-size: 0.8rem; opacity: 0.7;"></span>
+                <button onclick="handleLogout()" class="btn-small btn-outline">LOGOUT</button>
             </div>
         </nav>
 
         <div class="dashboard-wrapper">
             <div class="main-content">
                 <div class="card">
-                    <h3>💡 Global Story Pitches (Visible to All)</h3>
-                    <div id="pitch-list"></div>
+                    <h3>💡 Global Team Pitches (Real-time)</h3>
+                    <div id="pitch-list">Loading team board...</div>
                     
                     <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
                     
-                    <h3>Create New Pitch</h3>
-                    <label>Shooting Date</label>
-                    <input type="date" id="pitchDate">
-                    
-                    <label>Location</label>
-                    <input type="text" id="pitchLocation" placeholder="e.g. Studio A, Quezon City">
-                    
-                    <label>Cameraman</label>
-                    <input type="text" id="pitchCameraman" placeholder="Name of assigned cameraman">
-                    
-                    <label>About the Story</label>
-                    <textarea id="pitchAbout" placeholder="Briefly explain the pitch..." rows="3"></textarea>
-                    
-                    <button onclick="addPitch()">SUBMIT TO TEAM BOARD</button>
+                    <h3>Submit New Story Pitch</h3>
+                    <label>Shooting Date</label><input type="date" id="pDate">
+                    <label>Location</label><input type="text" id="pLoc" placeholder="e.g. Studio B / Field Location">
+                    <label>Cameraman</label><input type="text" id="pCam" placeholder="Assigned Personnel">
+                    <label>About the Story</label><textarea id="pAbout" rows="3" placeholder="Explain the pitch details..."></textarea>
+                    <button onclick="addPitch()">POST TO TEAM BOARD</button>
                 </div>
             </div>
 
             <div class="sidebar">
                 <div class="card">
-                    <h3>🎬 My Personal Checklist</h3>
+                    <h3>🎬 My Private Checklist</h3>
                     <div id="task-list"></div>
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
                         <input type="text" id="newTask" placeholder="Add task..." style="margin:0;">
                         <button onclick="addTask()" style="width: 80px; margin:0;">ADD</button>
                     </div>
                 </div>
-
-                <div class="card">
-                    <h3>🔗 Quick Links</h3>
-                    <div id="link-list"></div>
-                    <input type="text" id="linkName" placeholder="Name">
-                    <input type="text" id="linkUrl" placeholder="URL">
-                    <button onclick="addLink()" class="btn-outline">SAVE LINK</button>
-                </div>
             </div>
         </div>
     </div>
 
-<script>
-    const _supabase = supabase.createClient('https://mkteilecrgeneahnrntz.supabase.co', 'sb_publishable_rpW0yklH9QEdz7c41e2gTw_k1v2DTdO');
-
-    async function checkUser() {
-        const { data: { user } } = await _supabase.auth.getUser();
-        if (user) {
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('dashboard-section').classList.remove('hidden');
-            document.getElementById('user-email').innerText = user.email;
-            loadAllData(user.id);
-        }
-    }
-
-    async function signUp() {
-        const { error } = await _supabase.auth.signUp({
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value,
-            options: { emailRedirectTo: window.location.href }
-        });
-        if (error) alert(error.message); else alert("Check your email!");
-    }
-
-    async function signIn() {
-        const { error } = await _supabase.auth.signInWithPassword({
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value,
-        });
-        if (error) alert("Login failed"); else checkUser();
-    }
-
-    function signOut() { _supabase.auth.signOut(); location.reload(); }
-
-    function loadAllData(userId) {
-        fetchTasks(userId);
-        fetchPitches(); // No userId filter so everyone sees everything
-        fetchLinks(userId);
-    }
-
-    // PITCHES LOGIC (Public)
-    async function fetchPitches() {
-        // Inaalis ang .eq('user_id') para makita ng lahat
-        const { data } = await _supabase.from('pitches').select('*').order('created_at', { ascending: false });
-        if (data) {
-            document.getElementById('pitch-list').innerHTML = data.map(p => `
-                <div class="item-row">
-                    <div style="color:var(--primary-yellow); font-weight:bold; font-size:1rem;">📅 ${p.shooting_date || 'TBD'}</div>
-                    <div class="pitch-grid">
-                        <span>📍 <b>Loc:</b> ${p.location || 'N/A'}</span>
-                        <span>🎥 <b>Cam:</b> ${p.cameraman || 'N/A'}</span>
-                    </div>
-                    <div class="pitch-about">${p.about || 'No details provided.'}</div>
-                </div>
-            `).join('');
-        }
-    }
-
-    async function addPitch() {
-        const { data: { user } } = await _supabase.auth.getUser();
-        const pitchData = {
-            shooting_date: document.getElementById('pitchDate').value,
-            location: document.getElementById('pitchLocation').value,
-            cameraman: document.getElementById('pitchCameraman').value,
-            about: document.getElementById('pitchAbout').value,
-            user_id: user.id
+    <script>
+        // Your Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCWyMPS1vabyK_uGAWzmmeW9iuL7ksEUBE",
+            authDomain: "prod-hub-d43c4.firebaseapp.com",
+            projectId: "prod-hub-d43c4",
+            storageBucket: "prod-hub-d43c4.firebasestorage.app",
+            messagingSenderId: "262638128725",
+            appId: "1:262638128725:web:12136df5187f89deff8edc",
+            measurementId: "G-0E941P3S8J"
         };
 
-        const { error } = await _supabase.from('pitches').insert([pitchData]);
-        if (error) alert(error.message);
-        else {
-            document.getElementById('pitchDate').value = '';
-            document.getElementById('pitchLocation').value = '';
-            document.getElementById('pitchCameraman').value = '';
-            document.getElementById('pitchAbout').value = '';
-            fetchPitches();
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Listen for Auth State
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('dashboard-section').classList.remove('hidden');
+                document.getElementById('user-display').innerText = user.email;
+                loadGlobalPitches();
+                loadPersonalTasks(user.uid);
+            } else {
+                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('dashboard-section').classList.add('hidden');
+            }
+        });
+
+        // --- AUTH FUNCTIONS ---
+        async function handleSignup() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('password').value;
+            try { await auth.createUserWithEmailAndPassword(e, p); } 
+            catch(err) { alert("Signup Error: " + err.message); }
         }
-    }
 
-    // TASKS & LINKS LOGIC (Private)
-    async function fetchTasks(userId) {
-        const { data } = await _supabase.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: true });
-        if (data) {
-            document.getElementById('task-list').innerHTML = data.map(t => `
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px; background:#252525; padding:10px; border-radius:6px;">
-                    <span style="${t.is_completed ? 'text-decoration:line-through; opacity:0.5' : ''}">${t.task_name}</span>
-                    <button class="btn-small" onclick="toggleTask('${t.id}', ${t.is_completed})">${t.is_completed ? 'UNDO' : 'DONE'}</button>
-                </div>
-            `).join('');
+        async function handleLogin() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('password').value;
+            try { await auth.signInWithEmailAndPassword(e, p); } 
+            catch(err) { alert("Login Error: " + err.message); }
         }
-    }
 
-    async function addTask() {
-        const { data: { user } } = await _supabase.auth.getUser();
-        const val = document.getElementById('newTask').value;
-        if (!val) return;
-        await _supabase.from('tasks').insert([{ task_name: val, user_id: user.id }]);
-        document.getElementById('newTask').value = '';
-        fetchTasks(user.id);
-    }
+        function handleLogout() { auth.signOut(); }
 
-    async function toggleTask(id, current) {
-        const { data: { user } } = await _supabase.auth.getUser();
-        await _supabase.from('tasks').update({ is_completed: !current }).eq('id', id);
-        fetchTasks(user.id);
-    }
-
-    async function fetchLinks(userId) {
-        const { data } = await _supabase.from('links').select('*').eq('user_id', userId);
-        if (data) {
-            document.getElementById('link-list').innerHTML = data.map(l => `
-                <a href="${l.url}" target="_blank" class="link-item">🔗 ${l.name}</a>
-            `).join('');
+        // --- GLOBAL PITCHES (Visible to everyone) ---
+        function loadGlobalPitches() {
+            db.collection("pitches").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+                const list = document.getElementById('pitch-list');
+                if (snapshot.empty) {
+                    list.innerHTML = "<p style='font-size:0.8rem; color:#666;'>No pitches submitted yet.</p>";
+                    return;
+                }
+                list.innerHTML = snapshot.docs.map(doc => {
+                    const p = doc.data();
+                    return `
+                        <div class="pitch-row">
+                            <div style="color:var(--primary-yellow); font-weight:bold; font-size:1rem;">📅 ${p.date || 'TBD'}</div>
+                            <div class="pitch-grid">
+                                <span>📍 <b>Loc:</b> ${p.location || 'N/A'}</span>
+                                <span>🎥 <b>Cam:</b> ${p.cameraman || 'N/A'}</span>
+                            </div>
+                            <div class="pitch-about">${p.about || 'No description.'}</div>
+                            <div style="font-size:0.6rem; color:#555; margin-top:5px;">Submitted by: ${p.author}</div>
+                        </div>
+                    `;
+                }).join('');
+            });
         }
-    }
 
-    async function addLink() {
-        const { data: { user } } = await _supabase.auth.getUser();
-        const name = document.getElementById('linkName').value;
-        const url = document.getElementById('linkUrl').value;
-        await _supabase.from('links').insert([{ name, url, user_id: user.id }]);
-        document.getElementById('linkName').value = ''; document.getElementById('linkUrl').value = '';
-        fetchLinks(user.id);
-    }
+        async function addPitch() {
+            const user = auth.currentUser;
+            const date = document.getElementById('pDate').value;
+            const loc = document.getElementById('pLoc').value;
+            const cam = document.getElementById('pCam').value;
+            const about = document.getElementById('pAbout').value;
 
-    checkUser();
-</script>
+            if(!about) { alert("Please provide details about the story."); return; }
+
+            try {
+                await db.collection("pitches").add({
+                    date: date,
+                    location: loc,
+                    cameraman: cam,
+                    about: about,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    author: user.email
+                });
+                // Clear fields
+                document.getElementById('pDate').value = '';
+                document.getElementById('pLoc').value = '';
+                document.getElementById('pCam').value = '';
+                document.getElementById('pAbout').value = '';
+            } catch(err) { alert("Error saving pitch: " + err.message); }
+        }
+
+        // --- PERSONAL CHECKLIST (Private per user) ---
+        function loadPersonalTasks(uid) {
+            db.collection("tasks").where("uid", "==", uid).orderBy("createdAt", "asc").onSnapshot(snapshot => {
+                const list = document.getElementById('task-list');
+                list.innerHTML = snapshot.docs.map(doc => {
+                    const t = doc.data();
+                    return `
+                        <div class="task-row ${t.done ? 'completed' : ''}">
+                            <span style="font-size:0.9rem;">${t.text}</span>
+                            <button class="btn-small" onclick="toggleTask('${doc.id}', ${t.done})">${t.done ? 'UNDO' : 'DONE'}</button>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+
+        async function addTask() {
+            const txt = document.getElementById('newTask').value;
+            if(!txt) return;
+            try {
+                await db.collection("tasks").add({
+                    uid: auth.currentUser.uid,
+                    text: txt,
+                    done: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                document.getElementById('newTask').value = '';
+            } catch(err) { alert("Error: " + err.message); }
+        }
+
+        async function toggleTask(id, currentStatus) {
+            await db.collection("tasks").doc(id).update({ done: !currentStatus });
+        }
+    </script>
 </body>
 </html>
