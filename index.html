@@ -59,14 +59,18 @@
         .tag-urgent { background: var(--danger); color: white; }
         
         .prod-tasks { margin-top: 18px; border-top: 1px solid #333; padding-top: 15px; }
-        .task-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .task-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+        @media (min-width: 600px) { .task-grid { grid-template-columns: repeat(4, 1fr); } }
+        
         .task-btn { 
             font-size: 0.6rem; padding: 10px 5px; border-radius: 6px; border: 1px solid #444; 
             background: #111; color: #888; cursor: pointer; text-align: center; font-weight: 800; transition: 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 4px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
         }
         .task-btn.ongoing { border-color: var(--ongoing); color: var(--ongoing); background: rgba(51, 181, 229, 0.05); }
         .task-btn.done { border-color: var(--success); color: var(--success); background: rgba(0, 200, 81, 0.1); }
+        .task-btn.pending { border-color: var(--accent-color); color: var(--accent-color); }
+        
         .pitch-row.status-done { border-left-color: var(--success) !important; background: #1b251e; }
 
         input, textarea, select { 
@@ -102,13 +106,16 @@
         }
         .icon-sm { width: 14px; height: 14px; }
 
-        /* NEW CUSTOM STYLES */
         .hub-tabs { display: flex; gap: 5px; margin-bottom: 15px; background: #000; padding: 5px; border-radius: 10px; border: 1px solid #222; }
         .hub-tab { flex: 1; padding: 10px; font-size: 0.65rem; font-weight: 800; text-align: center; cursor: pointer; border-radius: 6px; color: #555; transition: 0.3s; text-transform: uppercase; }
         .hub-tab.active { background: var(--accent-color); color: #000; }
         .btn-approve { background: var(--success); color: white; width: auto; padding: 6px 15px; font-size: 0.7rem; margin-top: 12px; margin-left: 5px; }
         .airing-tag { background: #fff; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; font-size: 0.6rem; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* ADDED STYLES FOR ASSIGNMENT */
+        .assignment-box { font-size: 0.65rem; color: #777; margin-top: 5px; display: flex; gap: 10px; }
+        .assignment-box b { color: var(--accent-color); }
     </style>
 </head>
 <body>
@@ -186,8 +193,9 @@
                     </select>
                     <input type="date" id="pDate">
                     <input type="text" id="pLoc" placeholder="Location">
-                    <input type="text" id="pCam" placeholder="Camera / DP">
-                    <input type="url" id="pMedia" placeholder="Media Link (Image/Video URL)">
+                    <input type="text" id="pCam" placeholder="Assign Camera/DP Email">
+                    <input type="text" id="pEditor" placeholder="Assign Editor Email">
+                    <input type="url" id="pMedia" placeholder="Reference Link">
                     <textarea id="pAbout" rows="4" placeholder="Describe the story concept..."></textarea>
                     <button onclick="addPitch()">POST TO HUB</button>
                 </div>
@@ -299,7 +307,6 @@
                     document.getElementById('role-tag').innerText = currentUserRole;
                     document.getElementById('user-display').innerText = userData.displayName || user.displayName || user.email.split('@')[0].toUpperCase();
                     
-                    // Dynamic Greetings based on Role
                     const hour = new Date().getHours();
                     let timeGreet = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
                     document.getElementById('greeting-msg').innerText = `${timeGreet}, ${currentUserRole}!`;
@@ -379,7 +386,7 @@
 
                 const filteredDocs = snapshot.docs.filter(doc => {
                     const p = doc.data();
-                    const isFullyDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done';
+                    const isFullyDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done' && p.tasks?.vo === 'done';
                     if(isFullyDone) completed++;
 
                     if (currentHubTab === 'approval') return !p.approved;
@@ -396,33 +403,55 @@
                         const isOwner = auth.currentUser.email === p.author;
                         const priorityClass = p.priority === 'Urgent' ? 'priority-high' : '';
                         const tagClass = p.priority === 'Urgent' ? 'tag-urgent' : '';
-                        const isStoryDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done';
+                        const isStoryDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done' && p.tasks?.vo === 'done';
                         const storyDoneClass = isStoryDone ? 'status-done' : '';
                         
-                        // FIX: Strict role checking for Approval Button
                         const canApprove = (currentUserRole === 'Associate Producer' || currentUserRole === 'Host' || currentUserRole === 'Producer');
+
+                        // Permission Logic
+                        const isAssignedEditor = auth.currentUser.email === p.editor;
+                        const isAssignedCam = auth.currentUser.email === p.cameraman;
+                        const hasFullAccess = canApprove || isOwner;
 
                         return `
                             <div class="pitch-row ${priorityClass} ${storyDoneClass}">
                                 <span class="priority-tag ${tagClass}">${p.priority || 'Normal'}</span>
                                 ${isStoryDone ? '<span class="airing-tag">READY FOR AIRING</span>' : ''}
-                                <div style="font-weight:bold; color:var(--accent-color); margin-bottom:12px; font-size: 0.9rem;">📅 ${p.date || 'TBD'}</div>
-                                <div style="display:grid; grid-template-columns:1fr 1fr; font-size:0.75rem; color:#aaa; margin-bottom:12px; gap: 10px;">
-                                    <span><i data-lucide="map-pin" class="icon-sm"></i> ${p.location}</span>
-                                    <span><i data-lucide="camera" class="icon-sm"></i> ${p.cameraman}</span>
+                                <div style="font-weight:bold; color:var(--accent-color); margin-bottom:5px; font-size: 0.9rem;">📅 ${p.date || 'TBD'}</div>
+                                <div class="assignment-box">
+                                    <span><i data-lucide="camera" class="icon-sm"></i> Cam: <b>${p.cameraman || 'Unassigned'}</b></span>
+                                    <span><i data-lucide="scissors" class="icon-sm"></i> Editor: <b>${p.editor || 'Unassigned'}</b></span>
+                                </div>
+                                <div style="display:grid; grid-template-columns:1fr; font-size:0.75rem; color:#aaa; margin: 10px 0; gap: 5px;">
+                                    <span><i data-lucide="map-pin" class="icon-sm"></i> Loc: ${p.location}</span>
                                 </div>
                                 <div style="color:#eee; background:rgba(255,255,255,0.03); padding:15px; border-radius:8px; font-size:0.9rem; border: 1px solid #333;">
                                     ${p.about}
-                                    ${p.mediaLink ? `<br><a href="${p.mediaLink}" target="_blank" class="media-link-btn"><i data-lucide="external-link" class="icon-sm"></i> VIEW MEDIA</a>` : ''}
+                                    ${p.mediaLink ? `<br><a href="${p.mediaLink}" target="_blank" class="media-link-btn"><i data-lucide="external-link" class="icon-sm"></i> REF MEDIA</a>` : ''}
+                                    ${p.scriptLink ? `<br><a href="${p.scriptLink}" target="_blank" class="media-link-btn" style="color:var(--success)"><i data-lucide="file-text" class="icon-sm"></i> VIEW SCRIPT</a>` : ''}
+                                    ${p.voLink ? `<br><a href="${p.voLink}" target="_blank" class="media-link-btn" style="color:var(--ongoing)"><i data-lucide="mic" class="icon-sm"></i> LISTEN VO</a>` : ''}
                                 </div>
                                 
                                 ${p.approved ? `
                                 <div class="prod-tasks">
                                     <span style="font-size:0.6rem; color:var(--accent-color); font-weight:900; letter-spacing: 0.5px;">PROGRESS TRACKER</span>
                                     <div class="task-grid">
-                                        <div class="task-btn ${p.tasks?.script || ''}" onclick="updateProdTask('${doc.id}', 'script', '${p.tasks?.script || ''}')"><i data-lucide="file-text" class="icon-sm"></i> SCRIPT</div>
-                                        <div class="task-btn ${p.tasks?.shoot || ''}" onclick="updateProdTask('${doc.id}', 'shoot', '${p.tasks?.shoot || ''}')"><i data-lucide="video" class="icon-sm"></i> SHOOT</div>
-                                        <div class="task-btn ${p.tasks?.edit || ''}" onclick="updateProdTask('${doc.id}', 'edit', '${p.tasks?.edit || ''}')"><i data-lucide="scissors" class="icon-sm"></i> EDIT</div>
+                                        <div class="task-btn ${p.tasks?.script || ''}" onclick="handleScriptAction('${doc.id}', '${p.tasks?.script || ''}', ${hasFullAccess})">
+                                            <i data-lucide="file-text" class="icon-sm"></i> 
+                                            SCRIPT ${p.tasks?.script === 'pending' ? '(Wait Apprv)' : ''}
+                                        </div>
+
+                                        <div class="task-btn ${p.tasks?.shoot || ''}" onclick="updateBasicTask('${doc.id}', 'shoot', '${p.tasks?.shoot || ''}', ${hasFullAccess || isAssignedCam})">
+                                            <i data-lucide="video" class="icon-sm"></i> SHOOT
+                                        </div>
+
+                                        <div class="task-btn ${p.tasks?.edit || ''}" onclick="updateBasicTask('${doc.id}', 'edit', '${p.tasks?.edit || ''}', ${hasFullAccess || isAssignedEditor})">
+                                            <i data-lucide="scissors" class="icon-sm"></i> EDIT
+                                        </div>
+
+                                        <div class="task-btn ${p.tasks?.vo || ''}" onclick="handleVOAction('${doc.id}', '${p.tasks?.vo || ''}', ${currentUserRole === 'Host' || canApprove})">
+                                            <i data-lucide="mic" class="icon-sm"></i> VO
+                                        </div>
                                     </div>
                                 </div>
                                 ` : ''}
@@ -445,21 +474,70 @@
             });
         }
 
+        // Logic for SCRIPT (Upload -> Approval)
+        async function handleScriptAction(id, currentStatus, isAdmin) {
+            if (currentStatus === "" || currentStatus === "ongoing") {
+                const link = prompt("Paste Script Link (Google Docs/Drive):");
+                if (link) {
+                    await db.collection("pitches").doc(id).update({ 
+                        scriptLink: link, 
+                        "tasks.script": "pending" 
+                    });
+                    alert("Script submitted for approval.");
+                }
+            } else if (currentStatus === "pending") {
+                if (isAdmin) {
+                    if (confirm("Approve this script? Status will turn GREEN.")) {
+                        await db.collection("pitches").doc(id).update({ "tasks.script": "done" });
+                    }
+                } else {
+                    alert("Waiting for Associate Producer/Host approval.");
+                }
+            } else {
+                if(isAdmin && confirm("Reset Script status?")) {
+                    await db.collection("pitches").doc(id).update({ "tasks.script": "" });
+                }
+            }
+        }
+
+        // Logic for VO (Host Only)
+        async function handleVOAction(id, currentStatus, isHost) {
+            if (!isHost) return alert("Only the Program Host or Producers can update Voice Over.");
+            
+            if (currentStatus === "" || currentStatus === "ongoing") {
+                const link = prompt("Paste Voice Over File Link:");
+                if (link) {
+                    await db.collection("pitches").doc(id).update({ 
+                        voLink: link, 
+                        "tasks.vo": "done" 
+                    });
+                }
+            } else {
+                if(confirm("Reset VO status?")) {
+                    await db.collection("pitches").doc(id).update({ "tasks.vo": "" });
+                }
+            }
+        }
+
+        // Logic for SHOOT & EDIT
+        async function updateBasicTask(docId, taskType, currentStatus, hasPermission) {
+            if (!hasPermission) return alert("You are not assigned to this role for this segment.");
+            
+            let nextStatus = "";
+            if (currentStatus === "") nextStatus = "ongoing";
+            else if (currentStatus === "ongoing") nextStatus = "done";
+            else nextStatus = "";
+            
+            const updateObj = {};
+            updateObj[`tasks.${taskType}`] = nextStatus;
+            await db.collection("pitches").doc(docId).update(updateObj);
+        }
+
         async function approvePitch(id) {
             if(confirm("Approve this story for production?")) {
                 await db.collection("pitches").doc(id).update({ approved: true });
                 switchTab('production');
             }
-        }
-
-        async function updateProdTask(docId, taskType, currentStatus) {
-            let nextStatus = "";
-            if (currentStatus === "") nextStatus = "ongoing";
-            else if (currentStatus === "ongoing") nextStatus = "done";
-            else nextStatus = "";
-            const updateObj = {};
-            updateObj[`tasks.${taskType}`] = nextStatus;
-            await db.collection("pitches").doc(docId).update(updateObj);
         }
 
         async function addPitch() {
@@ -469,15 +547,16 @@
                 priority: document.getElementById('pPriority').value,
                 date: document.getElementById('pDate').value,
                 location: document.getElementById('pLoc').value,
-                cameraman: document.getElementById('pCam').value,
+                cameraman: document.getElementById('pCam').value, // Assignment
+                editor: document.getElementById('pEditor').value,    // Assignment
                 mediaLink: document.getElementById('pMedia').value,
                 about: about,
                 author: auth.currentUser.email,
                 approved: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                tasks: { script: "", shoot: "", edit: "" }
+                tasks: { script: "", shoot: "", edit: "", vo: "" }
             });
-            ['pAbout', 'pLoc', 'pCam', 'pDate', 'pMedia'].forEach(id => document.getElementById(id).value = '');
+            ['pAbout', 'pLoc', 'pCam', 'pEditor', 'pDate', 'pMedia'].forEach(id => document.getElementById(id).value = '');
             switchTab('approval');
         }
 
