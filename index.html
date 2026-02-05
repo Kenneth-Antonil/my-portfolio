@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Production Team Hub</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1b; color: white; padding: 40px; }
+        .hidden { display: none; }
+        .auth-container, .dashboard { max-width: 400px; margin: auto; background: #2d2e30; padding: 20px; border-radius: 8px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #8ab4f8; border: none; cursor: pointer; font-weight: bold; }
+        .task-item { border-bottom: 1px solid #444; padding: 10px 0; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-section" class="auth-container">
+        <h2>Team Login</h2>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="signIn()">Login</button>
+        <button onclick="signUp()" style="margin-top:5px; background: #444; color: white;">Sign Up</button>
+    </div>
+
+    <div id="dashboard-section" class="dashboard hidden">
+        <h2>Welcome, <span id="user-email"></span></h2>
+        <button onclick="signOut()" style="background:#f28b82">Logout</button>
+        
+        <hr>
+        <h3>Your Checklist</h3>
+        <div id="task-list"></div>
+        <input type="text" id="newTask" placeholder="Add new AV script or task...">
+        <button onclick="addTask()">Add Task</button>
+    </div>
+
+<script>
+    // Initialize Supabase (Replace with your keys!)
+    const _supabase = supabase.createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY');
+
+    // 1. Auth Logic
+    async function signUp() {
+        const { data, error } = await _supabase.auth.signUp({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+        });
+        if (error) alert(error.message); else alert("Check your email for confirmation!");
+    }
+
+    async function signIn() {
+        const { data, error } = await _supabase.auth.signInWithPassword({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+        });
+        if (error) alert(error.message); else checkUser();
+    }
+
+    async function signOut() {
+        await _supabase.auth.signOut();
+        location.reload();
+    }
+
+    // 2. Data Logic
+    async function checkUser() {
+        const { data: { user } } = await _supabase.auth.getUser();
+        if (user) {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('dashboard-section').classList.remove('hidden');
+            document.getElementById('user-email').innerText = user.email;
+            fetchTasks(user.id);
+        }
+    }
+
+    async function fetchTasks(userId) {
+        const { data, error } = await _supabase.from('tasks').select('*').eq('user_id', userId);
+        const list = document.getElementById('task-list');
+        list.innerHTML = data.map(t => `<div class="task-item">${t.task_name} <span>${t.is_completed ? '✅' : '⏳'}</span></div>`).join('');
+    }
+
+    async function addTask() {
+        const user = (await _supabase.auth.getUser()).data.user;
+        const taskName = document.getElementById('newTask').value;
+        await _supabase.from('tasks').insert([{ task_name: taskName, user_id: user.id }]);
+        document.getElementById('newTask').value = '';
+        fetchTasks(user.id);
+    }
+
+    checkUser(); // Check status on load
+</script>
+</body>
+</html>
