@@ -2,49 +2,117 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Production Team Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Team Hub | Yellow Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; background: #1a1a1b; color: white; padding: 40px; }
+        /* Yellow to Deep Yellow/Gold Theme */
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #1a1a1b; color: #f0f0f0; padding: 20px; }
         .hidden { display: none; }
-        .auth-container, .dashboard { max-width: 400px; margin: auto; background: #2d2e30; padding: 20px; border-radius: 8px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #8ab4f8; border: none; cursor: pointer; font-weight: bold; }
-        .task-item { border-bottom: 1px solid #444; padding: 10px 0; display: flex; justify-content: space-between; }
+        
+        .auth-container, .dashboard { 
+            max-width: 450px; 
+            margin: 40px auto; 
+            background: #2d2e30; 
+            padding: 30px; 
+            border-radius: 12px; 
+            border-top: 5px solid #ffcc00; /* Yellow accent */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        h2, h3 { color: #ffcc00; margin-top: 0; }
+        
+        input { 
+            width: 100%; padding: 12px; margin: 10px 0; 
+            box-sizing: border-box; background: #202124; 
+            border: 1px solid #444; color: white; border-radius: 6px; 
+        }
+
+        input:focus { border-color: #ffcc00; outline: none; }
+
+        /* Yellow Buttons */
+        button { 
+            width: 100%; padding: 12px; 
+            background: #ffcc00; /* Yellow */
+            border: none; cursor: pointer; 
+            font-weight: bold; color: #1a1a1b; 
+            border-radius: 6px; transition: 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover { background: #e6b800; /* Deep Yellow */ }
+        
+        .btn-secondary { background: #444; color: white; margin-top: 5px; }
+        .btn-secondary:hover { background: #555; }
+        .btn-logout { background: #f28b82; color: #1a1a1b; width: auto; padding: 5px 15px; float: right; }
+
+        /* Task Items */
+        .task-item { 
+            background: #36373a;
+            margin-bottom: 8px;
+            padding: 12px; 
+            border-radius: 6px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            border-left: 3px solid #ffcc00;
+        }
+
+        .task-text { flex-grow: 1; margin-right: 10px; }
+        .completed { text-decoration: line-through; color: #888; border-left-color: #555; }
+        
+        .status-btn { 
+            width: auto; padding: 5px 10px; font-size: 0.8rem; margin: 0;
+            background: #444; color: #ffcc00; border: 1px solid #ffcc00;
+        }
     </style>
 </head>
 <body>
 
     <div id="auth-section" class="auth-container">
-        <h2>Team Login</h2>
+        <h2>🎬 Team Login</h2>
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="password" placeholder="Password">
         <button onclick="signIn()">Login</button>
-        <button onclick="signUp()" style="margin-top:5px; background: #444; color: white;">Sign Up</button>
+        <button onclick="signUp()" class="btn-secondary">Sign Up</button>
     </div>
 
     <div id="dashboard-section" class="dashboard hidden">
-        <h2>Welcome, <span id="user-email"></span></h2>
-        <button onclick="signOut()" style="background:#f28b82">Logout</button>
+        <button onclick="signOut()" class="btn-logout">Logout</button>
+        <h2>Work Schedule</h2>
+        <p style="font-size: 0.9rem;">Logged in: <span id="user-email" style="color:#ffcc00"></span></p>
         
-        <hr>
-        <h3>Your Checklist</h3>
+        <hr style="border: 0.5px solid #444; margin: 20px 0;">
+        
+        <h3>✅ Production Checklist</h3>
         <div id="task-list"></div>
-        <input type="text" id="newTask" placeholder="Add new AV script or task...">
-        <button onclick="addTask()">Add Task</button>
+        
+        <div style="margin-top: 20px;">
+            <input type="text" id="newTask" placeholder="Add AV Script, Pitch, or Schedule...">
+            <button onclick="addTask()">+ Add to List</button>
+        </div>
     </div>
 
 <script>
-    // Initialize Supabase (Replace with your keys!)
+    // Initialize Supabase
     const _supabase = supabase.createClient('https://mkteilecrgeneahnrntz.supabase.co', 'sb_publishable_rpW0yklH9QEdz7c41e2gTw_k1v2DTdO');
 
     // 1. Auth Logic
     async function signUp() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        
         const { data, error } = await _supabase.auth.signUp({
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value,
+            email: email,
+            password: password,
+            options: {
+                // Pinipilit bumalik sa kasalukuyang URL ng GitHub site mo
+                emailRedirectTo: window.location.href 
+            }
         });
-        if (error) alert(error.message); else alert("Check your email for confirmation!");
+        
+        if (error) alert("Error: " + error.message); 
+        else alert("Verification email sent! Pakicheck ang inbox o spam folder.");
     }
 
     async function signIn() {
@@ -52,7 +120,7 @@
             email: document.getElementById('email').value,
             password: document.getElementById('password').value,
         });
-        if (error) alert(error.message); else checkUser();
+        if (error) alert("Login failed: " + error.message); else checkUser();
     }
 
     async function signOut() {
@@ -72,20 +140,57 @@
     }
 
     async function fetchTasks(userId) {
-        const { data, error } = await _supabase.from('tasks').select('*').eq('user_id', userId);
+        const { data, error } = await _supabase
+            .from('tasks')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: true });
+
         const list = document.getElementById('task-list');
-        list.innerHTML = data.map(t => `<div class="task-item">${t.task_name} <span>${t.is_completed ? '✅' : '⏳'}</span></div>`).join('');
+        if (data) {
+            list.innerHTML = data.map(t => `
+                <div class="task-item ${t.is_completed ? 'completed' : ''}">
+                    <span class="task-text">${t.task_name}</span>
+                    <button class="status-btn" onclick="toggleTask('${t.id}', ${t.is_completed})">
+                        ${t.is_completed ? 'Undo' : 'Done'}
+                    </button>
+                </div>
+            `).join('');
+        }
     }
 
     async function addTask() {
-        const user = (await _supabase.auth.getUser()).data.user;
-        const taskName = document.getElementById('newTask').value;
-        await _supabase.from('tasks').insert([{ task_name: taskName, user_id: user.id }]);
-        document.getElementById('newTask').value = '';
-        fetchTasks(user.id);
+        const { data: { user } } = await _supabase.auth.getUser();
+        const taskInput = document.getElementById('newTask');
+        if (!taskInput.value) return;
+
+        const { error } = await _supabase
+            .from('tasks')
+            .insert([{ 
+                task_name: taskInput.value, 
+                user_id: user.id, 
+                is_completed: false 
+            }]);
+
+        if (error) alert("Error: " + error.message);
+        else {
+            taskInput.value = '';
+            fetchTasks(user.id);
+        }
     }
 
-    checkUser(); // Check status on load
+    async function toggleTask(taskId, currentState) {
+        const { data: { user } } = await _supabase.auth.getUser();
+        const { error } = await _supabase
+            .from('tasks')
+            .update({ is_completed: !currentState })
+            .eq('id', taskId);
+        
+        if (error) alert(error.message);
+        else fetchTasks(user.id);
+    }
+
+    checkUser();
 </script>
 </body>
 </html>
