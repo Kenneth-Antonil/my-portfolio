@@ -18,25 +18,44 @@
             --danger: #ff4444;
             --success: #00c851;
             --ongoing: #33b5e5;
-            --announcement: #9c27b0;
         }
 
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); margin: 0; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); margin: 0; line-height: 1.5; }
         .hidden { display: none !important; }
 
         /* Navigation */
         nav { 
-            background: #000; padding: 0.8rem 2rem; display: flex; justify-content: space-between; 
+            background: #000; padding: 0.8rem 1rem; display: flex; justify-content: space-between; 
             align-items: center; border-bottom: 2px solid var(--accent-color);
             position: sticky; top: 0; z-index: 1000;
         }
-        .nav-logo { font-weight: 900; color: var(--accent-color); font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
-        .nav-logo img { width: 30px; border-radius: 5px; }
+        .nav-logo { font-weight: 900; color: var(--accent-color); font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+        .nav-logo img { width: 25px; border-radius: 5px; }
+        .nav-user-info { display: flex; align-items: center; gap: 10px; }
 
-        /* Dashboard Layout */
-        .dashboard-wrapper { max-width: 1400px; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 300px 1fr 300px; gap: 20px; }
+        /* Mobile First Layout (1 Column) */
+        .dashboard-wrapper { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 15px; 
+            padding: 15px; 
+            max-width: 1400px; 
+            margin: 0 auto; 
+        }
+
+        /* Desktop Layout (3 Columns) */
+        @media (min-width: 1024px) {
+            .dashboard-wrapper {
+                grid-template-columns: 320px 1fr 300px;
+                padding: 20px;
+                gap: 20px;
+            }
+            .nav-logo { font-size: 1.4rem; }
+            .nav-logo img { width: 30px; }
+        }
         
-        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid #2a2a2a; margin-bottom: 20px; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid #2a2a2a; height: fit-content; }
         h3 { color: var(--accent-color); font-size: 0.85rem; text-transform: uppercase; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; }
 
         /* Pitch Items */
@@ -48,48 +67,52 @@
         .priority-tag { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; float: right; font-weight: bold; }
         .tag-urgent { background: var(--danger); color: white; }
         
-        /* New Sectioning for Pitches */
-        .story-details { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #444; }
-        
         /* Production Tasks Styling */
-        .prod-tasks { margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
-        .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-top: 8px; }
+        .prod-tasks { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; }
+        .task-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
         .task-btn { 
-            font-size: 0.65rem; padding: 5px; border-radius: 4px; border: 1px solid #444; 
-            background: #111; color: #888; cursor: pointer; text-align: center;
+            font-size: 0.65rem; padding: 8px 4px; border-radius: 4px; border: 1px solid #444; 
+            background: #111; color: #888; cursor: pointer; text-align: center; font-weight: bold;
         }
         .task-btn.ongoing { border-color: var(--ongoing); color: var(--ongoing); }
         .task-btn.done { border-color: var(--success); color: var(--success); background: rgba(0, 200, 81, 0.1); }
         .pitch-row.status-done { border-left-color: var(--success) !important; box-shadow: inset 0 0 10px rgba(0, 200, 81, 0.1); }
 
-        /* Announcement Styling */
-        .ann-row { background: #2a2a2a; border-left: 3px solid var(--announcement); padding: 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.8rem; }
-        .ann-meta { font-size: 0.6rem; color: var(--announcement); font-weight: bold; display: block; margin-bottom: 3px; }
-
         /* Inputs & Buttons */
         input, textarea, select { 
-            width: 100%; padding: 10px; margin-bottom: 12px; background: var(--input-bg); 
-            border: 1px solid #333; color: white; border-radius: 6px; box-sizing: border-box;
+            width: 100%; padding: 12px; margin-bottom: 12px; background: var(--input-bg); 
+            border: 1px solid #333; color: white; border-radius: 6px; box-sizing: border-box; font-size: 1rem;
         }
         button { 
-            background: var(--accent-color); color: #000; border: none; padding: 12px; 
+            background: var(--accent-color); color: #000; border: none; padding: 14px; 
             border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s;
         }
         button:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-delete { background: transparent; color: var(--danger); border: 1px solid var(--danger); width: auto; padding: 4px 8px; font-size: 0.7rem; margin-top: 10px; }
+        .btn-delete { background: transparent; color: var(--danger); border: 1px solid var(--danger); width: auto; padding: 6px 12px; font-size: 0.7rem; margin-top: 10px; }
 
-        @media (max-width: 1100px) { .dashboard-wrapper { grid-template-columns: 1fr; } }
+        /* Auth Section Scaling */
+        #auth-card {
+            background: rgba(20,20,20,0.95); padding: 30px; border-radius: 15px; 
+            width: 90%; max-width: 380px; text-align: center; border: 1px solid var(--accent-color);
+        }
+
+        /* Order adjustment for mobile: Feed comes after Add Pitch but before Quick Tasks */
+        @media (max-width: 1023px) {
+            .sidebar-left { order: 2; }
+            .main-feed { order: 1; }
+            .sidebar-right { order: 3; }
+        }
     </style>
 </head>
 <body>
 
     <div id="auth-section" style="height:100vh; display:flex; align-items:center; justify-content:center; background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://i.imgur.com/7d3ROpd.jpeg') center/cover;">
-        <div style="background: rgba(20,20,20,0.9); padding: 40px; border-radius: 15px; width: 350px; text-align: center; border: 1px solid var(--accent-color);">
-            <img src="https://i.imgur.com/7d3ROpd.jpeg" style="width: 80px; border-radius: 50%; border: 2px solid var(--accent-color); margin-bottom: 15px;">
+        <div id="auth-card">
+            <img src="https://i.imgur.com/7d3ROpd.jpeg" style="width: 80px; height:80px; object-fit: cover; border-radius: 50%; border: 2px solid var(--accent-color); margin-bottom: 15px;">
             <h2 style="color: var(--accent-color); margin: 0;">PROD-HUB</h2>
-            <p style="font-size: 0.8rem; color: #888; margin-bottom: 15px;">Team Collaboration Suite</p>
+            <p style="font-size: 0.8rem; color: #888; margin-bottom: 20px;">Team Collaboration Suite</p>
             
-            <select id="user-role" style="margin-bottom: 12px; border: 1px solid var(--accent-color);">
+            <select id="user-role" style="border: 1px solid var(--accent-color);">
                 <option value="Producer">Role: Producer</option>
                 <option value="Editor">Role: Video Editor</option>
                 <option value="Writer">Role: Script Writer</option>
@@ -108,24 +131,17 @@
             <div class="nav-logo">
                 <img src="https://i.imgur.com/7d3ROpd.jpeg"> PROD-HUB
             </div>
-            <div>
-                <span id="role-tag" style="background:var(--accent-color); color:black; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-right:10px; font-weight:bold;"></span>
-                <span id="user-display" style="font-size:0.8rem; margin-right:15px; color:var(--text-dim);"></span>
-                <button onclick="handleLogout()" style="width:auto; padding:5px 15px; font-size:0.7rem;">LOGOUT</button>
+            <div class="nav-user-info">
+                <div style="text-align: right; display: flex; flex-direction: column; justify-content: center;">
+                    <span id="role-tag" style="background:var(--accent-color); color:black; font-size:0.5rem; padding:1px 4px; border-radius:3px; font-weight:bold; width: fit-content; align-self: flex-end;"></span>
+                    <span id="user-display" style="font-size:0.7rem; color:var(--text-dim); font-weight: bold;"></span>
+                </div>
+                <button onclick="handleLogout()" style="width:auto; padding:6px 10px; font-size:0.7rem;">LOGOUT</button>
             </div>
         </nav>
 
         <div class="dashboard-wrapper">
-            <div class="sidebar">
-                <div class="card" style="border-color: var(--announcement);">
-                    <h3 style="color: var(--announcement); border-color: var(--announcement);">📢 Announcements</h3>
-                    <div id="announcement-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;"></div>
-                    <div style="display:flex; gap:5px;">
-                        <input type="text" id="newAnn" placeholder="Public blast..." style="margin:0; font-size: 0.8rem;">
-                        <button onclick="addAnnouncement()" style="width:50px; background: var(--announcement); color: white;">📢</button>
-                    </div>
-                </div>
-
+            <div class="sidebar-left">
                 <div class="card">
                     <h3>➕ New Story Pitch</h3>
                     <label style="font-size:0.7rem; color:#888;">Priority Level</label>
@@ -134,6 +150,7 @@
                         <option value="Urgent">🔥 Urgent</option>
                         <option value="Backlog">📁 Backlog</option>
                     </select>
+                    <label style="font-size:0.7rem; color:#888;">Shoot Date</label>
                     <input type="date" id="pDate">
                     <input type="text" id="pLoc" placeholder="Location">
                     <input type="text" id="pCam" placeholder="Cam / DP Assigned">
@@ -152,13 +169,13 @@
                 </div>
             </div>
 
-            <div class="sidebar">
+            <div class="sidebar-right">
                 <div class="card">
                     <h3>⚡ Quick Tasks</h3>
                     <div id="task-list"></div>
                     <div style="display:flex; gap:5px; margin-top:10px;">
                         <input type="text" id="newTask" placeholder="Add task..." style="margin:0;">
-                        <button onclick="addTask()" style="width:50px;">+</button>
+                        <button onclick="addTask()" style="width:50px; padding: 0;">+</button>
                     </div>
                 </div>
                 <div class="card" id="greeting-card" style="background: linear-gradient(to right, #1a1a1a, #252525);">
@@ -208,7 +225,6 @@
 
                 loadGlobalPitches();
                 loadPersonalTasks(user.uid);
-                loadAnnouncements(); // Bagong function
             } else {
                 document.getElementById('auth-section').classList.remove('hidden');
                 document.getElementById('dashboard-section').classList.add('hidden');
@@ -245,25 +261,21 @@
                     const priorityClass = p.priority === 'Urgent' ? 'priority-high' : '';
                     const tagClass = p.priority === 'Urgent' ? 'tag-urgent' : '';
                     
-                    // Check if overall story is done
                     const isStoryDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done';
                     const storyDoneClass = isStoryDone ? 'status-done' : '';
 
                     return `
                         <div class="pitch-row ${priorityClass} ${storyDoneClass}">
                             <span class="priority-tag ${tagClass}">${p.priority || 'Normal'}</span>
-                            
-                            <div class="story-details">
-                                <div style="font-weight:bold; color:var(--accent-color); margin-bottom:10px;">📅 ${p.date || 'TBD'}</div>
-                                <div style="display:grid; grid-template-columns:1fr 1fr; font-size:0.8rem; color:#aaa; margin-bottom:10px;">
-                                    <span>📍 ${p.location}</span>
-                                    <span>🎥 ${p.cameraman}</span>
-                                </div>
-                                <div style="color:#eee; background:#2a2a2a; padding:10px; border-radius:5px; font-size:0.9rem;">${p.about}</div>
+                            <div style="font-weight:bold; color:var(--accent-color); margin-bottom:10px;">📅 ${p.date || 'TBD'}</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; font-size:0.8rem; color:#aaa; margin-bottom:10px;">
+                                <span>📍 ${p.location}</span>
+                                <span>🎥 ${p.cameraman}</span>
                             </div>
+                            <div style="color:#eee; background:#2a2a2a; padding:10px; border-radius:5px; font-size:0.9rem;">${p.about}</div>
                             
                             <div class="prod-tasks">
-                                <span style="font-size:0.65rem; color:var(--accent-color); font-weight:bold;">🚀 STATUS TRACKER:</span>
+                                <span style="font-size:0.65rem; color:var(--accent-color); font-weight:bold;">PRODUCTION STATUS:</span>
                                 <div class="task-grid">
                                     <div class="task-btn ${p.tasks?.script || ''}" onclick="updateProdTask('${doc.id}', 'script', '${p.tasks?.script || ''}')">📝 SCRIPT</div>
                                     <div class="task-btn ${p.tasks?.shoot || ''}" onclick="updateProdTask('${doc.id}', 'shoot', '${p.tasks?.shoot || ''}')">🎬 SHOOT</div>
@@ -271,8 +283,8 @@
                                 </div>
                             </div>
 
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-                                <span style="font-size:0.6rem; color:#555;">By: ${p.author}</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.6rem; color:#555; margin-top:8px;">Posted by: ${p.author}</span>
                                 ${isOwner ? `<button class="btn-delete" onclick="deletePitch('${doc.id}')">Delete</button>` : ''}
                             </div>
                         </div>
@@ -315,34 +327,6 @@
             }
         }
 
-        // --- ANNOUNCEMENT LOGIC ---
-        async function addAnnouncement() {
-            const msg = document.getElementById('newAnn').value;
-            if(!msg) return;
-            await db.collection("announcements").add({
-                text: msg,
-                author: auth.currentUser.email.split('@')[0],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            document.getElementById('newAnn').value = '';
-        }
-
-        function loadAnnouncements() {
-            db.collection("announcements").orderBy("createdAt", "desc").limit(10).onSnapshot(snapshot => {
-                const list = document.getElementById('announcement-list');
-                list.innerHTML = snapshot.docs.map(doc => {
-                    const a = doc.data();
-                    return `
-                        <div class="ann-row">
-                            <span class="ann-meta">@${a.author}</span>
-                            ${a.text}
-                        </div>
-                    `;
-                }).join('');
-            });
-        }
-
-        // --- TASK LOGIC ---
         function loadPersonalTasks(uid) {
             db.collection("tasks").where("uid", "==", uid).orderBy("createdAt", "asc").onSnapshot(snapshot => {
                 const list = document.getElementById('task-list');
