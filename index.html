@@ -34,7 +34,7 @@
         .nav-logo { font-weight: 900; color: var(--accent-color); font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
         .nav-logo img { width: 32px; border-radius: 6px; }
 
-        /* Dashboard Layout - Mobile First */
+        /* Dashboard Layout */
         .dashboard-wrapper { 
             max-width: 1440px; 
             margin: 0 auto; 
@@ -44,7 +44,6 @@
             gap: 20px; 
         }
 
-        /* Desktop Layout Override */
         @media (min-width: 1100px) {
             .dashboard-wrapper { grid-template-columns: 320px 1fr 300px; padding: 25px; }
         }
@@ -61,6 +60,10 @@
         .priority-tag { font-size: 0.65rem; padding: 3px 8px; border-radius: 5px; float: right; font-weight: bold; text-transform: uppercase; }
         .tag-urgent { background: var(--danger); color: white; }
         
+        /* Progress Bar Styling */
+        .progress-container { height: 6px; background: #111; border-radius: 10px; margin: 15px 0; overflow: hidden; border: 1px solid #333; }
+        .progress-bar { height: 100%; background: var(--accent-color); transition: 0.5s ease-in-out; width: 0%; }
+
         /* Production Status Buttons */
         .prod-tasks { margin-top: 18px; border-top: 1px solid #333; padding-top: 15px; }
         .task-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
@@ -72,6 +75,7 @@
         .task-btn.ongoing { border-color: var(--ongoing); color: var(--ongoing); background: rgba(51, 181, 229, 0.05); }
         .task-btn.done { border-color: var(--success); color: var(--success); background: rgba(0, 200, 81, 0.1); }
         .pitch-row.status-done { border-left-color: var(--success) !important; background: #1b251e; }
+        .assigned-to-me { outline: 2px solid var(--accent-color); outline-offset: -2px; }
 
         /* Inputs & Buttons */
         input, textarea, select { 
@@ -87,9 +91,10 @@
         button:hover { filter: brightness(1.1); transform: translateY(-1px); }
         .btn-delete { background: transparent; color: var(--danger); border: 1px solid var(--danger); width: auto; padding: 6px 12px; font-size: 0.7rem; margin-top: 12px; border-radius: 6px; }
 
-        /* Announcement Board Styling */
+        /* Announcement & Presence */
         .announcement-item { border-bottom: 1px solid #2a2a2a; padding: 10px 0; display: flex; align-items: flex-start; gap: 10px; }
-        .announcement-item:last-child { border: none; }
+        .online-user { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; margin-bottom: 8px; color: #bbb; }
+        .status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 5px var(--success); }
 
         .media-link-btn {
             display: inline-flex; align-items: center; gap: 5px; margin-top: 10px;
@@ -144,9 +149,13 @@
         <div class="dashboard-wrapper">
             <div class="sidebar-left">
                 <div class="card" style="margin-bottom: 20px;">
+                    <h3><i data-lucide="users" class="icon-sm"></i> Team Online</h3>
+                    <div id="presence-list"></div>
+                </div>
+
+                <div class="card" style="margin-bottom: 20px;">
                     <h3><i data-lucide="megaphone" class="icon-sm"></i> Announcements</h3>
-                    <div id="announcement-board" style="font-size: 0.85rem; color: #ccc; max-height: 200px; overflow-y: auto; margin-bottom: 15px;">
-                        </div>
+                    <div id="announcement-board" style="font-size: 0.85rem; color: #ccc; max-height: 150px; overflow-y: auto; margin-bottom: 15px;"></div>
                     <div style="display:flex; gap:5px;">
                         <input type="text" id="newAnnouncement" placeholder="Broadcast message..." style="margin:0; font-size: 0.75rem;">
                         <button onclick="postAnnouncement()" style="width: 45px; padding:0;"><i data-lucide="send" style="width:16px;"></i></button>
@@ -163,8 +172,8 @@
                     </select>
                     <input type="date" id="pDate">
                     <input type="text" id="pLoc" placeholder="Location">
-                    <input type="text" id="pCam" placeholder="Camera / DP">
-                    <input type="url" id="pMedia" placeholder="Media Link (Image/Video URL)">
+                    <input type="text" id="pCam" placeholder="Camera / DP Name">
+                    <input type="url" id="pMedia" placeholder="Media Link (URL)">
                     <textarea id="pAbout" rows="4" placeholder="Describe the story concept..."></textarea>
                     <button onclick="addPitch()">POST TO HUB</button>
                 </div>
@@ -182,6 +191,14 @@
 
             <div class="sidebar-right">
                 <div class="card" style="margin-bottom: 20px;">
+                    <h3><i data-lucide="folder-open" class="icon-sm"></i> Team Assets</h3>
+                    <div style="font-size: 0.75rem; color: #888;">
+                        <div style="margin-bottom:8px;">📁 <a href="#" style="color:var(--accent-color); text-decoration:none;">Official Logos 2024</a></div>
+                        <div style="margin-bottom:8px;">📁 <a href="#" style="color:var(--accent-color); text-decoration:none;">Brand Font Pack</a></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 20px;">
                     <h3><i data-lucide="check-square" class="icon-sm"></i> My Tasks</h3>
                     <div id="task-list"></div>
                     <div style="display:flex; gap:8px; margin-top:15px;">
@@ -198,7 +215,6 @@
     </div>
 
     <script>
-        // --- CONFIG & INITIALIZATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyCWyMPS1vabyK_uGAWzmmeW9iuL7ksEUBE",
             authDomain: "prod-hub-d43c4.firebaseapp.com",
@@ -211,17 +227,13 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-        // Initialize Lucide Icons
         lucide.createIcons();
 
-        // Real-time Clock Logic
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
         }, 1000);
 
-        // Greeting Logic
         const hour = new Date().getHours();
         const greeting = hour < 12 ? "Good Morning, Producer!" : hour < 18 ? "Good Afternoon!" : "Good Evening, Team!";
         document.getElementById('greeting-msg').innerText = greeting;
@@ -230,12 +242,21 @@
             if (user) {
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('dashboard-section').classList.remove('hidden');
-                document.getElementById('user-display').innerText = user.email.split('@')[0].toUpperCase();
+                const username = user.email.split('@')[0].toUpperCase();
+                document.getElementById('user-display').innerText = username;
                 
                 const userDoc = await db.collection("users").doc(user.uid).get();
                 if(userDoc.exists) {
                     document.getElementById('role-tag').innerText = userDoc.data().role;
                 }
+
+                // Presence Logic
+                db.collection("presence").doc(user.uid).set({ name: username, online: true, lastSeen: Date.now() });
+                db.collection("presence").where("online", "==", true).onSnapshot(s => {
+                    document.getElementById('presence-list').innerHTML = s.docs.map(d => `
+                        <div class="online-user"><div class="status-dot"></div> ${d.data().name}</div>
+                    `).join('');
+                });
 
                 loadGlobalPitches();
                 loadPersonalTasks(user.uid);
@@ -263,12 +284,14 @@
             } catch(err) { alert(err.message); }
         }
 
-        function handleLogout() { auth.signOut(); }
+        function handleLogout() { 
+            db.collection("presence").doc(auth.currentUser.uid).delete();
+            auth.signOut(); 
+        }
 
         function loadAnnouncements() {
             db.collection("announcements").orderBy("createdAt", "desc").limit(10).onSnapshot(snapshot => {
-                const board = document.getElementById('announcement-board');
-                board.innerHTML = snapshot.docs.map(doc => `
+                document.getElementById('announcement-board').innerHTML = snapshot.docs.map(doc => `
                     <div class="announcement-item">
                         <div style="color:var(--accent-color); font-weight:bold; font-size:0.6rem;">${doc.data().author}:</div>
                         <div>${doc.data().text}</div>
@@ -281,31 +304,40 @@
             const txt = document.getElementById('newAnnouncement').value;
             if(!txt) return;
             await db.collection("announcements").add({
-                text: txt,
-                author: auth.currentUser.email.split('@')[0],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                text: txt, author: auth.currentUser.email.split('@')[0], createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             document.getElementById('newAnnouncement').value = '';
+        }
+
+        function calculateProgress(tasks) {
+            let total = 0;
+            if (tasks.script === 'done') total += 33.3;
+            if (tasks.shoot === 'done') total += 33.3;
+            if (tasks.edit === 'done') total += 33.4;
+            return total;
         }
 
         function loadGlobalPitches() {
             db.collection("pitches").orderBy("createdAt", "desc").onSnapshot(snapshot => {
                 const list = document.getElementById('pitch-list');
+                const myUsername = auth.currentUser.email.split('@')[0].toUpperCase();
+
                 list.innerHTML = snapshot.docs.map(doc => {
                     const p = doc.data();
                     const isOwner = auth.currentUser.email === p.author;
-                    const priorityClass = p.priority === 'Urgent' ? 'priority-high' : '';
-                    const tagClass = p.priority === 'Urgent' ? 'tag-urgent' : '';
-                    const isStoryDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done';
-                    const storyDoneClass = isStoryDone ? 'status-done' : '';
+                    const progress = calculateProgress(p.tasks || {});
+                    const isAssigned = p.cameraman && p.cameraman.toUpperCase() === myUsername;
 
                     return `
-                        <div class="pitch-row ${priorityClass} ${storyDoneClass}">
-                            <span class="priority-tag ${tagClass}">${p.priority || 'Normal'}</span>
+                        <div class="pitch-row ${p.priority === 'Urgent' ? 'priority-high' : ''} ${progress === 100 ? 'status-done' : ''} ${isAssigned ? 'assigned-to-me' : ''}">
+                            <span class="priority-tag ${p.priority === 'Urgent' ? 'tag-urgent' : ''}">${p.priority || 'Normal'}</span>
                             <div style="font-weight:bold; color:var(--accent-color); margin-bottom:12px; font-size: 0.9rem;">📅 ${p.date || 'TBD'}</div>
+                            
+                            <div class="progress-container"><div class="progress-bar" style="width: ${progress}%"></div></div>
+
                             <div style="display:grid; grid-template-columns:1fr 1fr; font-size:0.75rem; color:#aaa; margin-bottom:12px; gap: 10px;">
                                 <span><i data-lucide="map-pin" class="icon-sm"></i> ${p.location}</span>
-                                <span><i data-lucide="camera" class="icon-sm"></i> ${p.cameraman}</span>
+                                <span style="${isAssigned ? 'color:var(--accent-color); font-weight:bold;' : ''}"><i data-lucide="camera" class="icon-sm"></i> ${p.cameraman} ${isAssigned ? '(YOU)' : ''}</span>
                             </div>
                             <div style="color:#eee; background:rgba(255,255,255,0.03); padding:15px; border-radius:8px; font-size:0.9rem; border: 1px solid #333;">
                                 ${p.about}
@@ -313,7 +345,6 @@
                             </div>
                             
                             <div class="prod-tasks">
-                                <span style="font-size:0.6rem; color:var(--accent-color); font-weight:900; letter-spacing: 0.5px;">PROGRESS TRACKER</span>
                                 <div class="task-grid">
                                     <div class="task-btn ${p.tasks?.script || ''}" onclick="updateProdTask('${doc.id}', 'script', '${p.tasks?.script || ''}')"><i data-lucide="file-text" class="icon-sm"></i> SCRIPT</div>
                                     <div class="task-btn ${p.tasks?.shoot || ''}" onclick="updateProdTask('${doc.id}', 'shoot', '${p.tasks?.shoot || ''}')"><i data-lucide="video" class="icon-sm"></i> SHOOT</div>
@@ -322,7 +353,7 @@
                             </div>
 
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="font-size:0.6rem; color:#555; margin-top:12px;">Authored by: ${p.author}</span>
+                                <span style="font-size:0.6rem; color:#555; margin-top:12px;">By: ${p.author}</span>
                                 ${isOwner ? `<button class="btn-delete" onclick="deletePitch('${doc.id}')">Delete</button>` : ''}
                             </div>
                         </div>
@@ -333,12 +364,8 @@
         }
 
         async function updateProdTask(docId, taskType, currentStatus) {
-            let nextStatus = "";
-            if (currentStatus === "") nextStatus = "ongoing";
-            else if (currentStatus === "ongoing") nextStatus = "done";
-            else nextStatus = "";
-            const updateObj = {};
-            updateObj[`tasks.${taskType}`] = nextStatus;
+            let nextStatus = currentStatus === "" ? "ongoing" : currentStatus === "ongoing" ? "done" : "";
+            const updateObj = {}; updateObj[`tasks.${taskType}`] = nextStatus;
             await db.collection("pitches").doc(docId).update(updateObj);
         }
 
@@ -351,8 +378,7 @@
                 location: document.getElementById('pLoc').value,
                 cameraman: document.getElementById('pCam').value,
                 mediaLink: document.getElementById('pMedia').value,
-                about: about,
-                author: auth.currentUser.email,
+                about: about, author: auth.currentUser.email,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 tasks: { script: "", shoot: "", edit: "" }
             });
@@ -360,15 +386,12 @@
         }
 
         async function deletePitch(id) {
-            if(confirm("Delete this pitch?")) {
-                await db.collection("pitches").doc(id).delete();
-            }
+            if(confirm("Delete this pitch?")) await db.collection("pitches").doc(id).delete();
         }
 
         function loadPersonalTasks(uid) {
             db.collection("tasks").where("uid", "==", uid).orderBy("createdAt", "asc").onSnapshot(snapshot => {
-                const list = document.getElementById('task-list');
-                list.innerHTML = snapshot.docs.map(doc => {
+                document.getElementById('task-list').innerHTML = snapshot.docs.map(doc => {
                     const t = doc.data();
                     return `
                         <div style="display:flex; align-items:center; justify-content:space-between; background:#222; padding:10px; margin-bottom:8px; border-radius:8px; font-size:0.8rem; border: 1px solid #333;">
@@ -383,12 +406,7 @@
         async function addTask() {
             const val = document.getElementById('newTask').value;
             if(!val) return;
-            await db.collection("tasks").add({
-                uid: auth.currentUser.uid,
-                text: val,
-                done: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            await db.collection("tasks").add({ uid: auth.currentUser.uid, text: val, done: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
             document.getElementById('newTask').value = '';
         }
 
