@@ -32,7 +32,7 @@
             position: sticky; top: 0; z-index: 1000;
         }
         .nav-logo { font-weight: 900; color: var(--accent-color); font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
-        .nav-logo img { width: 32px; border-radius: 6px; }
+        .nav-logo img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--accent-color); object-fit: cover; }
 
         .dashboard-wrapper { 
             max-width: 1440px; 
@@ -91,6 +91,11 @@
             text-decoration: none; font-size: 0.75rem; border: 1px solid #444;
         }
 
+        /* NEW STYLE: Project Stats */
+        .stat-badge { background: #000; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #333; flex: 1; }
+        .stat-val { display: block; font-size: 1.2rem; font-weight: 900; color: var(--accent-color); }
+        .stat-label { font-size: 0.55rem; color: #888; text-transform: uppercase; }
+
         @media (max-width: 1099px) {
             .sidebar-left { order: 2; }
             .main-feed { order: 1; }
@@ -126,8 +131,7 @@
     <div id="dashboard-section" class="hidden">
         <nav>
             <div class="nav-logo">
-                <img src="https://i.imgur.com/7d3ROpd.jpeg"> PROD-HUB
-            </div>
+                <img src="https://i.imgur.com/7d3ROpd.jpeg"> </div>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div style="text-align: right; line-height: 1;">
                     <span id="role-tag" style="background:var(--accent-color); color:black; font-size:0.55rem; padding:2px 6px; border-radius:4px; font-weight:900; display: inline-block; margin-bottom: 4px;"></span><br>
@@ -139,6 +143,20 @@
 
         <div class="dashboard-wrapper">
             <div class="sidebar-left">
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3><i data-lucide="activity" class="icon-sm"></i> Project Pulse</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <div class="stat-badge">
+                            <span class="stat-val" id="total-pitches-count">0</span>
+                            <span class="stat-label">Total Pitches</span>
+                        </div>
+                        <div class="stat-badge">
+                            <span class="stat-val" id="completed-pitches-count">0</span>
+                            <span class="stat-label">Wrapped</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card" style="margin-bottom: 20px;">
                     <h3><i data-lucide="megaphone" class="icon-sm"></i> Announcements</h3>
                     <div id="announcement-board" style="font-size: 0.85rem; color: #ccc; max-height: 200px; overflow-y: auto; margin-bottom: 15px;">
@@ -167,6 +185,10 @@
             </div>
 
             <div class="main-feed">
+                <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+                    <input type="text" id="feedSearch" placeholder="🔍 Search production board..." style="margin:0; background: #111;" onkeyup="filterFeed()">
+                </div>
+
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                         <h3 style="border:none; margin:0;"><i data-lucide="clapperboard" class="icon-sm"></i> Production Board</h3>
@@ -188,6 +210,10 @@
                 <div class="card" id="greeting-card" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a); border-left: 4px solid var(--accent-color);">
                     <h4 id="greeting-msg" style="margin:0; font-size:0.95rem; color: var(--accent-color);">Welcome back!</h4>
                     <p style="font-size: 0.7rem; color: #888; margin: 5px 0 0 0;">Systems are operational.</p>
+                    <hr style="border: 0; border-top: 1px solid #333; margin: 10px 0;">
+                    <div style="font-size: 0.65rem; color: var(--success); display: flex; align-items: center; gap: 5px;">
+                        <i data-lucide="sun" class="icon-sm"></i> Production Weather: Clear Sky
+                    </div>
                 </div>
             </div>
         </div>
@@ -210,6 +236,16 @@
 
         lucide.createIcons();
 
+        // NEW: Live Feed Search Function
+        function filterFeed() {
+            const query = document.getElementById('feedSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('.pitch-row');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? "block" : "none";
+            });
+        }
+
         setInterval(() => {
             const now = new Date();
             const clockEl = document.getElementById('clock');
@@ -230,7 +266,6 @@
                 if(userDoc.exists) {
                     document.getElementById('role-tag').innerText = userDoc.data().role;
                 } else {
-                    // Fallback kung walang role na naset (halimbawa bagong user)
                     document.getElementById('role-tag').innerText = "Member";
                 }
 
@@ -243,17 +278,12 @@
             }
         });
 
-        // BAGONG LOGIC PARA SA GOOGLE AUTH
         async function handleGoogleAuth() {
             const selectedRole = document.getElementById('user-role').value;
             try {
                 const result = await auth.signInWithPopup(provider);
                 const user = result.user;
-                
-                // Check kung existing na ang user sa Firestore
                 const userDoc = await db.collection("users").doc(user.uid).get();
-                
-                // Kung bago ang user, i-save ang role nila
                 if (!userDoc.exists) {
                     await db.collection("users").doc(user.uid).set({
                         role: selectedRole,
@@ -267,8 +297,6 @@
         }
 
         function handleLogout() { auth.signOut(); }
-
-        // --- LAHAT NG ORIGINAL NA FUNCTIONS MO AY NARITO AT WALANG BINAWAS ---
 
         function loadAnnouncements() {
             db.collection("announcements").orderBy("createdAt", "desc").limit(10).onSnapshot(snapshot => {
@@ -296,12 +324,18 @@
         function loadGlobalPitches() {
             db.collection("pitches").orderBy("createdAt", "desc").onSnapshot(snapshot => {
                 const list = document.getElementById('pitch-list');
+                
+                // NEW: Calculate Stats
+                let total = snapshot.size;
+                let completed = 0;
+
                 list.innerHTML = snapshot.docs.map(doc => {
                     const p = doc.data();
                     const isOwner = auth.currentUser.email === p.author;
                     const priorityClass = p.priority === 'Urgent' ? 'priority-high' : '';
                     const tagClass = p.priority === 'Urgent' ? 'tag-urgent' : '';
                     const isStoryDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done';
+                    if(isStoryDone) completed++;
                     const storyDoneClass = isStoryDone ? 'status-done' : '';
 
                     return `
@@ -333,6 +367,10 @@
                         </div>
                     `;
                 }).join('');
+                
+                // Update Pulse Stats
+                document.getElementById('total-pitches-count').innerText = total;
+                document.getElementById('completed-pitches-count').innerText = completed;
                 lucide.createIcons();
             });
         }
