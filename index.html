@@ -215,6 +215,14 @@
 
             <div class="sidebar-right">
                 <div class="card" style="margin-bottom: 20px;">
+                    <h3><i data-lucide="user-cog" class="icon-sm"></i> Profile Settings</h3>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="updateNameInput" placeholder="Change Name..." style="margin:0; font-size: 0.75rem;">
+                        <button onclick="updateProfileName()" style="width:60px; padding: 0; font-size: 0.6rem;">SAVE</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 20px;">
                     <h3><i data-lucide="check-square" class="icon-sm"></i> My Tasks</h3>
                     <div id="task-list"></div>
                     <div style="display:flex; gap:8px; margin-top:15px;">
@@ -224,7 +232,7 @@
                 </div>
                 <div class="card" id="greeting-card" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a); border-left: 4px solid var(--accent-color);">
                     <h4 id="greeting-msg" style="margin:0; font-size:0.95rem; color: var(--accent-color);">Welcome back!</h4>
-                    <p style="font-size: 0.7rem; color: #888; margin: 5px 0 0 0;">Systems are operational.</p>
+                    <p id="role-greeting" style="font-size: 0.7rem; color: #888; margin: 5px 0 0 0;">Systems are operational.</p>
                     <hr style="border: 0; border-top: 1px solid #333; margin: 10px 0;">
                     <div style="font-size: 0.65rem; color: var(--success); display: flex; align-items: center; gap: 5px;">
                         <i data-lucide="sun" class="icon-sm"></i> Production Weather: Clear Sky
@@ -279,22 +287,23 @@
             if(clockEl) clockEl.innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
         }, 1000);
 
-        const hour = new Date().getHours();
-        const greeting = hour < 12 ? "Good Morning, Producer!" : hour < 18 ? "Good Afternoon!" : "Good Evening, Team!";
-        document.getElementById('greeting-msg').innerText = greeting;
-
         auth.onAuthStateChanged(async user => {
             if (user) {
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('dashboard-section').classList.remove('hidden');
-                document.getElementById('user-display').innerText = user.displayName || user.email.split('@')[0].toUpperCase();
                 
                 const userDoc = await db.collection("users").doc(user.uid).get();
                 if(userDoc.exists) {
-                    currentUserRole = userDoc.data().role;
+                    const userData = userDoc.data();
+                    currentUserRole = userData.role;
                     document.getElementById('role-tag').innerText = currentUserRole;
-                } else {
-                    document.getElementById('role-tag').innerText = "Member";
+                    document.getElementById('user-display').innerText = userData.displayName || user.displayName || user.email.split('@')[0].toUpperCase();
+                    
+                    // Dynamic Greetings based on Role
+                    const hour = new Date().getHours();
+                    let timeGreet = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
+                    document.getElementById('greeting-msg').innerText = `${timeGreet}, ${currentUserRole}!`;
+                    document.getElementById('role-greeting').innerText = `Ready to lead the crew, ${userData.displayName || 'Chief'}?`;
                 }
 
                 loadGlobalPitches();
@@ -306,6 +315,16 @@
             }
         });
 
+        async function updateProfileName() {
+            const newName = document.getElementById('updateNameInput').value;
+            if(!newName) return alert("Enter a name");
+            const user = auth.currentUser;
+            await db.collection("users").doc(user.uid).update({ displayName: newName });
+            document.getElementById('user-display').innerText = newName;
+            document.getElementById('updateNameInput').value = '';
+            alert("Name updated successfully!");
+        }
+
         async function handleGoogleAuth() {
             const selectedRole = document.getElementById('user-role').value;
             try {
@@ -316,7 +335,7 @@
                     await db.collection("users").doc(user.uid).set({
                         role: selectedRole,
                         email: user.email,
-                        displayName: user.displayName
+                        displayName: user.displayName || user.email.split('@')[0]
                     });
                 }
             } catch(err) {
@@ -341,9 +360,12 @@
         async function postAnnouncement() {
             const txt = document.getElementById('newAnnouncement').value;
             if(!txt) return;
+            const userDoc = await db.collection("users").doc(auth.currentUser.uid).get();
+            const authorName = userDoc.exists ? userDoc.data().displayName : (auth.currentUser.displayName || auth.currentUser.email.split('@')[0]);
+            
             await db.collection("announcements").add({
                 text: txt,
-                author: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
+                author: authorName,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             document.getElementById('newAnnouncement').value = '';
@@ -376,7 +398,9 @@
                         const tagClass = p.priority === 'Urgent' ? 'tag-urgent' : '';
                         const isStoryDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done';
                         const storyDoneClass = isStoryDone ? 'status-done' : '';
-                        const canApprove = currentUserRole === 'Associate Producer' || currentUserRole === 'Host';
+                        
+                        // FIX: Strict role checking for Approval Button
+                        const canApprove = (currentUserRole === 'Associate Producer' || currentUserRole === 'Host' || currentUserRole === 'Producer');
 
                         return `
                             <div class="pitch-row ${priorityClass} ${storyDoneClass}">
@@ -449,7 +473,7 @@
                 mediaLink: document.getElementById('pMedia').value,
                 about: about,
                 author: auth.currentUser.email,
-                approved: false, // Default: kailangan ng approval
+                approved: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 tasks: { script: "", shoot: "", edit: "" }
             });
