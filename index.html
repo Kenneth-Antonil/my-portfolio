@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* LAHAT NG IYONG EXISTING STYLES AY NARITO PA RIN */
+        /* EXISTING STYLES MANTAINED */
         :root {
             --accent-color: #ffb400;
             --bg-dark: #0f0f0f;
@@ -91,7 +91,6 @@
             text-decoration: none; font-size: 0.75rem; border: 1px solid #444;
         }
 
-        /* NEW STYLE: Project Stats */
         .stat-badge { background: #000; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #333; flex: 1; }
         .stat-val { display: block; font-size: 1.2rem; font-weight: 900; color: var(--accent-color); }
         .stat-label { font-size: 0.55rem; color: #888; text-transform: uppercase; }
@@ -102,6 +101,14 @@
             .sidebar-right { order: 3; }
         }
         .icon-sm { width: 14px; height: 14px; }
+
+        /* NEW CUSTOM STYLES */
+        .hub-tabs { display: flex; gap: 5px; margin-bottom: 15px; background: #000; padding: 5px; border-radius: 10px; border: 1px solid #222; }
+        .hub-tab { flex: 1; padding: 10px; font-size: 0.65rem; font-weight: 800; text-align: center; cursor: pointer; border-radius: 6px; color: #555; transition: 0.3s; text-transform: uppercase; }
+        .hub-tab.active { background: var(--accent-color); color: #000; }
+        .btn-approve { background: var(--success); color: white; width: auto; padding: 6px 15px; font-size: 0.7rem; margin-top: 12px; margin-left: 5px; }
+        .airing-tag { background: #fff; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; font-size: 0.6rem; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -115,6 +122,8 @@
             <label style="color:var(--accent-color); font-size: 0.7rem; display: block; text-align: left; margin-bottom: 5px; font-weight: bold;">CHOOSE YOUR ROLE:</label>
             <select id="user-role" style="border: 1px solid var(--accent-color);">
                 <option value="Producer">Producer</option>
+                <option value="Associate Producer">Associate Producer</option>
+                <option value="Host">Program Host</option>
                 <option value="Editor">Video Editor</option>
                 <option value="Writer">Script Writer</option>
                 <option value="Camera">Camera/DP</option>
@@ -185,13 +194,19 @@
             </div>
 
             <div class="main-feed">
+                <div class="hub-tabs">
+                    <div class="hub-tab active" id="tab-approval" onclick="switchTab('approval')">For Approval</div>
+                    <div class="hub-tab" id="tab-production" onclick="switchTab('production')">For Production</div>
+                    <div class="hub-tab" id="tab-airing" onclick="switchTab('airing')">For Airing</div>
+                </div>
+
                 <div style="margin-bottom: 15px; display: flex; gap: 10px;">
                     <input type="text" id="feedSearch" placeholder="🔍 Search production board..." style="margin:0; background: #111;" onkeyup="filterFeed()">
                 </div>
 
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                        <h3 style="border:none; margin:0;"><i data-lucide="clapperboard" class="icon-sm"></i> Production Board</h3>
+                        <h3 style="border:none; margin:0;"><i data-lucide="clapperboard" class="icon-sm"></i> <span id="board-title">Approval Board</span></h3>
                         <div id="clock" style="font-size:0.9rem; font-weight:900; color:var(--accent-color); background: #000; padding: 5px 12px; border-radius: 6px; border: 1px solid #333;"></div>
                     </div>
                     <div id="pitch-list">Loading feed...</div>
@@ -234,9 +249,21 @@
         const db = firebase.firestore();
         const provider = new firebase.auth.GoogleAuthProvider();
 
+        let currentHubTab = 'approval';
+        let currentUserRole = '';
+
         lucide.createIcons();
 
-        // NEW: Live Feed Search Function
+        function switchTab(tab) {
+            currentHubTab = tab;
+            document.querySelectorAll('.hub-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            const titles = { approval: 'Approval Board', production: 'Production Hub', airing: 'Airing Schedule' };
+            document.getElementById('board-title').innerText = titles[tab];
+            loadGlobalPitches();
+        }
+
         function filterFeed() {
             const query = document.getElementById('feedSearch').value.toLowerCase();
             const rows = document.querySelectorAll('.pitch-row');
@@ -264,7 +291,8 @@
                 
                 const userDoc = await db.collection("users").doc(user.uid).get();
                 if(userDoc.exists) {
-                    document.getElementById('role-tag').innerText = userDoc.data().role;
+                    currentUserRole = userDoc.data().role;
+                    document.getElementById('role-tag').innerText = currentUserRole;
                 } else {
                     document.getElementById('role-tag').innerText = "Member";
                 }
@@ -324,55 +352,80 @@
         function loadGlobalPitches() {
             db.collection("pitches").orderBy("createdAt", "desc").onSnapshot(snapshot => {
                 const list = document.getElementById('pitch-list');
-                
-                // NEW: Calculate Stats
                 let total = snapshot.size;
                 let completed = 0;
 
-                list.innerHTML = snapshot.docs.map(doc => {
+                const filteredDocs = snapshot.docs.filter(doc => {
                     const p = doc.data();
-                    const isOwner = auth.currentUser.email === p.author;
-                    const priorityClass = p.priority === 'Urgent' ? 'priority-high' : '';
-                    const tagClass = p.priority === 'Urgent' ? 'tag-urgent' : '';
-                    const isStoryDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done';
-                    if(isStoryDone) completed++;
-                    const storyDoneClass = isStoryDone ? 'status-done' : '';
+                    const isFullyDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done';
+                    if(isFullyDone) completed++;
 
-                    return `
-                        <div class="pitch-row ${priorityClass} ${storyDoneClass}">
-                            <span class="priority-tag ${tagClass}">${p.priority || 'Normal'}</span>
-                            <div style="font-weight:bold; color:var(--accent-color); margin-bottom:12px; font-size: 0.9rem;">📅 ${p.date || 'TBD'}</div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; font-size:0.75rem; color:#aaa; margin-bottom:12px; gap: 10px;">
-                                <span><i data-lucide="map-pin" class="icon-sm"></i> ${p.location}</span>
-                                <span><i data-lucide="camera" class="icon-sm"></i> ${p.cameraman}</span>
-                            </div>
-                            <div style="color:#eee; background:rgba(255,255,255,0.03); padding:15px; border-radius:8px; font-size:0.9rem; border: 1px solid #333;">
-                                ${p.about}
-                                ${p.mediaLink ? `<br><a href="${p.mediaLink}" target="_blank" class="media-link-btn"><i data-lucide="external-link" class="icon-sm"></i> VIEW MEDIA</a>` : ''}
-                            </div>
-                            
-                            <div class="prod-tasks">
-                                <span style="font-size:0.6rem; color:var(--accent-color); font-weight:900; letter-spacing: 0.5px;">PROGRESS TRACKER</span>
-                                <div class="task-grid">
-                                    <div class="task-btn ${p.tasks?.script || ''}" onclick="updateProdTask('${doc.id}', 'script', '${p.tasks?.script || ''}')"><i data-lucide="file-text" class="icon-sm"></i> SCRIPT</div>
-                                    <div class="task-btn ${p.tasks?.shoot || ''}" onclick="updateProdTask('${doc.id}', 'shoot', '${p.tasks?.shoot || ''}')"><i data-lucide="video" class="icon-sm"></i> SHOOT</div>
-                                    <div class="task-btn ${p.tasks?.edit || ''}" onclick="updateProdTask('${doc.id}', 'edit', '${p.tasks?.edit || ''}')"><i data-lucide="scissors" class="icon-sm"></i> EDIT</div>
+                    if (currentHubTab === 'approval') return !p.approved;
+                    if (currentHubTab === 'production') return p.approved && !isFullyDone;
+                    if (currentHubTab === 'airing') return p.approved && isFullyDone;
+                    return true;
+                });
+
+                if(filteredDocs.length === 0) {
+                    list.innerHTML = `<div style="text-align:center; padding:40px; color:#555; font-size:0.8rem;">No projects in this stage.</div>`;
+                } else {
+                    list.innerHTML = filteredDocs.map(doc => {
+                        const p = doc.data();
+                        const isOwner = auth.currentUser.email === p.author;
+                        const priorityClass = p.priority === 'Urgent' ? 'priority-high' : '';
+                        const tagClass = p.priority === 'Urgent' ? 'tag-urgent' : '';
+                        const isStoryDone = p.tasks?.script === 'done' && p.tasks?.shoot === 'done' && p.tasks?.edit === 'done';
+                        const storyDoneClass = isStoryDone ? 'status-done' : '';
+                        const canApprove = currentUserRole === 'Associate Producer' || currentUserRole === 'Host';
+
+                        return `
+                            <div class="pitch-row ${priorityClass} ${storyDoneClass}">
+                                <span class="priority-tag ${tagClass}">${p.priority || 'Normal'}</span>
+                                ${isStoryDone ? '<span class="airing-tag">READY FOR AIRING</span>' : ''}
+                                <div style="font-weight:bold; color:var(--accent-color); margin-bottom:12px; font-size: 0.9rem;">📅 ${p.date || 'TBD'}</div>
+                                <div style="display:grid; grid-template-columns:1fr 1fr; font-size:0.75rem; color:#aaa; margin-bottom:12px; gap: 10px;">
+                                    <span><i data-lucide="map-pin" class="icon-sm"></i> ${p.location}</span>
+                                    <span><i data-lucide="camera" class="icon-sm"></i> ${p.cameraman}</span>
+                                </div>
+                                <div style="color:#eee; background:rgba(255,255,255,0.03); padding:15px; border-radius:8px; font-size:0.9rem; border: 1px solid #333;">
+                                    ${p.about}
+                                    ${p.mediaLink ? `<br><a href="${p.mediaLink}" target="_blank" class="media-link-btn"><i data-lucide="external-link" class="icon-sm"></i> VIEW MEDIA</a>` : ''}
+                                </div>
+                                
+                                ${p.approved ? `
+                                <div class="prod-tasks">
+                                    <span style="font-size:0.6rem; color:var(--accent-color); font-weight:900; letter-spacing: 0.5px;">PROGRESS TRACKER</span>
+                                    <div class="task-grid">
+                                        <div class="task-btn ${p.tasks?.script || ''}" onclick="updateProdTask('${doc.id}', 'script', '${p.tasks?.script || ''}')"><i data-lucide="file-text" class="icon-sm"></i> SCRIPT</div>
+                                        <div class="task-btn ${p.tasks?.shoot || ''}" onclick="updateProdTask('${doc.id}', 'shoot', '${p.tasks?.shoot || ''}')"><i data-lucide="video" class="icon-sm"></i> SHOOT</div>
+                                        <div class="task-btn ${p.tasks?.edit || ''}" onclick="updateProdTask('${doc.id}', 'edit', '${p.tasks?.edit || ''}')"><i data-lucide="scissors" class="icon-sm"></i> EDIT</div>
+                                    </div>
+                                </div>
+                                ` : ''}
+
+                                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                                    <span style="font-size:0.6rem; color:#555; margin-top:12px;">Authored by: ${p.author}</span>
+                                    <div>
+                                        ${!p.approved && canApprove ? `<button class="btn-approve" onclick="approvePitch('${doc.id}')">APPROVE PITCH</button>` : ''}
+                                        ${isOwner ? `<button class="btn-delete" onclick="deletePitch('${doc.id}')">Delete</button>` : ''}
+                                    </div>
                                 </div>
                             </div>
-
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="font-size:0.6rem; color:#555; margin-top:12px;">Authored by: ${p.author}</span>
-                                ${isOwner ? `<button class="btn-delete" onclick="deletePitch('${doc.id}')">Delete</button>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                        `;
+                    }).join('');
+                }
                 
-                // Update Pulse Stats
                 document.getElementById('total-pitches-count').innerText = total;
                 document.getElementById('completed-pitches-count').innerText = completed;
                 lucide.createIcons();
             });
+        }
+
+        async function approvePitch(id) {
+            if(confirm("Approve this story for production?")) {
+                await db.collection("pitches").doc(id).update({ approved: true });
+                switchTab('production');
+            }
         }
 
         async function updateProdTask(docId, taskType, currentStatus) {
@@ -396,10 +449,12 @@
                 mediaLink: document.getElementById('pMedia').value,
                 about: about,
                 author: auth.currentUser.email,
+                approved: false, // Default: kailangan ng approval
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 tasks: { script: "", shoot: "", edit: "" }
             });
             ['pAbout', 'pLoc', 'pCam', 'pDate', 'pMedia'].forEach(id => document.getElementById(id).value = '');
+            switchTab('approval');
         }
 
         async function deletePitch(id) {
